@@ -1,0 +1,13 @@
+{
+  "name": "cat",
+  "kind": "flask_app",
+  "pid": 35625,
+  "cmd": [
+    "/Volumes/AI_DRIVE/TitanAgent/venv/bin/python3",
+    "app.py"
+  ],
+  "url": "http://127.0.0.1:5060",
+  "started_at": "2026-04-26T14:11:22",
+  "stdout": "/Volumes/AI_DRIVE/TitanAgent/logs/products/cat.stdout.log",
+  "stderr": "/Volumes/AI_DRIVE/TitanAgent/logs/products/cat.stderr.log"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "product-builder",
+  "description": "Scaffold and improve local products, CLI tools, Flask apps, and static sites.",
+  "dependencies": [],
+  "entry": "SKILL.md"
+}

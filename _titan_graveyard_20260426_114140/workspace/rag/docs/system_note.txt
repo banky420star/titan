@@ -1,0 +1,1 @@
+Titan is running locally on an M4 Mac with 16GB RAM using AI_DRIVE.

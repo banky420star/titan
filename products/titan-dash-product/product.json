@@ -1,0 +1,10 @@
+{
+  "name": "titan-dash-product",
+  "template": "flask_dashboard",
+  "description": "Created from Titan template: flask_dashboard",
+  "files": [
+    "README.md",
+    "app.py",
+    "requirements.txt"
+  ]
+}

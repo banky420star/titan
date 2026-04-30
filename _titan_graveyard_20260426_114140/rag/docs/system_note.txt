@@ -1,0 +1,4 @@
+Titan is running locally on an M4 Mac with 16GB RAM.
+The external AI drive is named AI_DRIVE.
+Titan uses qwen2.5-coder:7b as the main local coding model.
+Titan uses nomic-embed-text for local RAG embeddings.

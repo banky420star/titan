@@ -1,0 +1,132 @@
+{
+  "name": "Titan",
+  "version": "clean-reset-0.1",
+  "dashboard_port": 5050,
+  "workspace": "/Volumes/AI_DRIVE/TitanAgent/workspace",
+  "model": "qwen2.5-coder:7b",
+  "fallback_model": "qwen3:8b",
+  "role_models": {
+    "planner": "qwen3:8b",
+    "coder": "qwen2.5-coder:14b",
+    "tester": "qwen2.5-coder:7b",
+    "reviewer": "batiai/qwen3.6-35b:iq3"
+  },
+  "preserved": [
+    "models",
+    "venv"
+  ],
+  "fast_model": "qwen2.5-coder:7b",
+  "smart_model": "qwen3:8b",
+  "num_ctx": 4096,
+  "num_predict": 450,
+  "model_timeout": 90,
+  "fallback_timeout": 90,
+  "max_agent_steps": 5,
+  "local_only": true,
+  "embedding_model": "nomic-embed-text:latest",
+  "model_profiles": {
+    "tiny": {
+      "model": "qwen3:1.7b",
+      "fallback_model": "qwen2.5-coder:7b",
+      "num_ctx": 2048,
+      "num_predict": 250,
+      "max_agent_steps": 3
+    },
+    "fast": {
+      "model": "qwen2.5-coder:7b",
+      "fallback_model": "qwen3:8b",
+      "num_ctx": 4096,
+      "num_predict": 450,
+      "max_agent_steps": 5
+    },
+    "coder": {
+      "model": "qwen2.5-coder:14b",
+      "fallback_model": "qwen2.5-coder:7b",
+      "num_ctx": 8192,
+      "num_predict": 800,
+      "max_agent_steps": 7
+    },
+    "smart": {
+      "model": "qwen3:8b",
+      "fallback_model": "qwen2.5-coder:14b",
+      "num_ctx": 8192,
+      "num_predict": 900,
+      "max_agent_steps": 8
+    },
+    "heavy": {
+      "model": "batiai/qwen3.6-35b:iq3",
+      "fallback_model": "qwen3:8b",
+      "num_ctx": 16384,
+      "num_predict": 1200,
+      "max_agent_steps": 10
+    },
+    "max": {
+      "model": "qwen3.6:35b",
+      "fallback_model": "batiai/qwen3.6-35b:iq3",
+      "num_ctx": 16384,
+      "num_predict": 1600,
+      "max_agent_steps": 12
+    }
+  },
+  "active_profile": "fast",
+  "web_enabled": true,
+  "allow_private_network_fetch": false,
+  "max_fetch_bytes": 2500000,
+  "max_download_bytes": 250000000,
+  "approved_web_domains": [
+    "*"
+  ],
+  "approved_download_domains": [
+    "*"
+  ],
+  "verify_ssl": false,
+  "permission_mode": "agentic",
+  "allowed_command_prefixes": [
+    "python",
+    "python3",
+    "pip",
+    "ls",
+    "pwd",
+    "cat",
+    "find",
+    "grep",
+    "mkdir",
+    "touch",
+    "pytest",
+    "node",
+    "npm",
+    "git",
+    "ollama"
+  ],
+  "blocked_command_fragments": [
+    "sudo ",
+    " rm -rf /",
+    "rm -rf /",
+    "diskutil erase",
+    "mkfs",
+    "dd if=",
+    "dd of=",
+    ":(){",
+    "chmod -R 777 /",
+    "chown -R",
+    "curl ",
+    "wget "
+  ],
+  "idea_model": "qwen3:8b/agentic",
+  "idea_timeout": 180,
+  "plain_text_mode": "idea_chat",
+  "image_backend": "comfyui",
+  "image_enhance_prompt": true,
+  "image_width": 768,
+  "image_height": 768,
+  "comfy_steps": 4,
+  "comfy_cfg": 1.0,
+  "video_quality": "medium",
+  "video_width": 1024,
+  "video_height": 576,
+  "video_seconds": 7,
+  "video_fps": 18,
+  "video_motion": "high",
+  "video_image_backend": "pollinations",
+  "video_keyframes": 4
+}

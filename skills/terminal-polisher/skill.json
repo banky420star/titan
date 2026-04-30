@@ -1,0 +1,6 @@
+{
+  "name": "terminal-polisher",
+  "description": "Improve Titan terminal UX, slash commands, prompt behavior, and startup mascot.",
+  "dependencies": [],
+  "entry": "SKILL.md"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "titan-ui-polisher",
+  "description": "Improves Titan terminal and dashboard visuals using the official mascot style.",
+  "dependencies": [],
+  "entry": "SKILL.md"
+}

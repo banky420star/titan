@@ -1,0 +1,6 @@
+{
+  "name": "bug-fixer",
+  "description": "Find, patch, and verify bugs in Titan's local Python files.",
+  "dependencies": [],
+  "entry": "SKILL.md"
+}

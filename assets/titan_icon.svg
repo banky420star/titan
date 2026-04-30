@@ -1,0 +1,36 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="36" fill="#202020"/>
+
+  <g filter="url(#shadow)">
+    <rect x="54" y="95" width="70" height="82" rx="22" fill="url(#yellow)"/>
+    <rect x="100" y="47" width="70" height="130" rx="22" fill="url(#orange)"/>
+    <rect x="146" y="77" width="64" height="100" rx="22" fill="url(#coral)"/>
+
+    <rect x="96" y="104" width="25" height="38" rx="13" fill="#172033"/>
+    <rect x="139" y="104" width="25" height="38" rx="13" fill="#172033"/>
+
+    <circle cx="106" cy="116" r="5" fill="white" opacity="0.95"/>
+    <circle cx="149" cy="116" r="5" fill="white" opacity="0.95"/>
+  </g>
+
+  <defs>
+    <linearGradient id="yellow" x1="54" y1="95" x2="124" y2="177" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF06A"/>
+      <stop offset="1" stop-color="#FFD02E"/>
+    </linearGradient>
+
+    <linearGradient id="orange" x1="100" y1="47" x2="170" y2="177" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFC46B"/>
+      <stop offset="1" stop-color="#FF8D3D"/>
+    </linearGradient>
+
+    <linearGradient id="coral" x1="146" y1="77" x2="210" y2="177" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7B7D"/>
+      <stop offset="1" stop-color="#FF535D"/>
+    </linearGradient>
+
+    <filter id="shadow" x="34" y="31" width="196" height="166" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="10" flood-color="#000000" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+</svg>

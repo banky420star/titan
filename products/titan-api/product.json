@@ -1,0 +1,10 @@
+{
+  "name": "titan-api",
+  "template": "api_service",
+  "description": "Created from Titan template: api_service",
+  "files": [
+    "README.md",
+    "app.py",
+    "requirements.txt"
+  ]
+}

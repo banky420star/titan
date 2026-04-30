@@ -1,0 +1,9 @@
+{
+  "name": "image_creation_tool",
+  "description": "A skill pack for creating images using AI.",
+  "dependencies": [
+    "python3",
+    "Pillow"
+  ],
+  "entry": "SKILL.md"
+}

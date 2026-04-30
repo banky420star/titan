@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Logs / runtime
+logs/
+jobs/
+downloads/
+*.log
+*.pid
+
+# Backups / generated junk
+backups/
+old_ui_archive/
+*.backup
+*.bak
+
+# Local AI models / huge files
+models/
+local_ai/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Mac
+.DS_Store
+
+# Secrets / config
+.env
+.env.*
+secrets.json
+api_keys.json
+
+# Optional: keep config out if it has keys
+# config.json

@@ -1,0 +1,7 @@
+#!/bin/zsh
+osascript <<'OSA'
+tell application "Terminal"
+  activate
+  do script "cd /Volumes/AI_DRIVE/TitanAgent && source venv/bin/activate && python3 titan_terminal.py"
+end tell
+OSA

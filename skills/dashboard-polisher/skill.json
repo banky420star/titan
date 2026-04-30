@@ -1,0 +1,6 @@
+{
+  "name": "dashboard-polisher",
+  "description": "Improve Titan dashboard UI, chat layout, mascot behavior, and micro-interactions.",
+  "dependencies": [],
+  "entry": "SKILL.md"
+}

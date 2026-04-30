@@ -1,0 +1,3 @@
+{"id": "chat-7dac0ceb68", "time": "2026-04-26T15:43:02", "section": "General", "role": "user", "content": "inspect", "meta": {"source": "terminal"}}
+{"id": "chat-e5094731e0", "time": "2026-04-26T15:48:03", "section": "General", "role": "assistant", "content": "Titan model call failed safely. Primary error: TimeoutError('timed out') Fallback error: TimeoutError('timed out')", "meta": {"source": "terminal", "reply_to": "chat-7dac0ceb68"}}
+{"id": "chat-0786c538ad", "time": "2026-04-26T23:08:37", "section": "General", "role": "user", "content": "build poly market 5 min bot", "meta": {"source": "dashboard"}}

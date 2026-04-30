@@ -1,0 +1,13 @@
+{
+  "name": "titan-dash-product",
+  "kind": "flask_app",
+  "pid": 41195,
+  "cmd": [
+    "/Volumes/AI_DRIVE/TitanAgent/venv/bin/python3",
+    "app.py"
+  ],
+  "url": "http://127.0.0.1:5060",
+  "started_at": "2026-04-30T10:57:27",
+  "stdout": "/Volumes/AI_DRIVE/TitanAgent/logs/products/titan-dash-product.stdout.log",
+  "stderr": "/Volumes/AI_DRIVE/TitanAgent/logs/products/titan-dash-product.stderr.log"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "titan-landing",
+  "template": "landing_page",
+  "description": "Created from Titan template: landing_page",
+  "files": [
+    "README.md",
+    "app.js",
+    "index.html",
+    "style.css"
+  ]
+}

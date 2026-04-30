@@ -1,0 +1,16 @@
+{
+  "name": "demo-site",
+  "kind": "static_website",
+  "pid": null,
+  "cmd": [
+    "/Volumes/AI_DRIVE/TitanAgent/venv/bin/python3",
+    "-m",
+    "http.server",
+    "5060"
+  ],
+  "url": "http://127.0.0.1:5060",
+  "started_at": "2026-04-26T14:06:47",
+  "stdout": "/Volumes/AI_DRIVE/TitanAgent/logs/products/demo-site.stdout.log",
+  "stderr": "/Volumes/AI_DRIVE/TitanAgent/logs/products/demo-site.stderr.log",
+  "stopped_at": "2026-04-26T14:11:08"
+}
