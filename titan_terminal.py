@@ -13,6 +13,11 @@ BASE = Path("/Volumes/AI_DRIVE/TitanAgent")
 CONFIG = BASE / "config.json"
 DASHBOARD_URL = "http://127.0.0.1:5050"
 
+# Ensure TitanAgent root is on sys.path for agent_core imports
+_titan_root = str(BASE)
+if _titan_root not in sys.path:
+    sys.path.insert(0, _titan_root)
+
 try:
     from rich.console import Console
     from rich.panel import Panel
@@ -1069,6 +1074,239 @@ def terminal_video_motion(args):
 
 
 
+# ─── Missing terminal handler functions ─────────────────────────────
+
+def show_agents():
+    try:
+        from agent_core.subagents import format_subagents
+        say_panel(format_subagents(), title="Agents", style="cyan")
+    except Exception as e:
+        say_panel("Agents failed: " + repr(e), title="Agents", style="red")
+
+
+def show_skills():
+    try:
+        from agent_core.skills import list_skills
+        say_panel(list_skills(), title="Skills", style="cyan")
+    except Exception as e:
+        say_panel("Skills failed: " + repr(e), title="Skills", style="red")
+
+
+def show_rag_status():
+    try:
+        from agent_core.rag import rag_status
+        say_panel(rag_status(), title="RAG", style="cyan")
+    except Exception as e:
+        say_panel("RAG status failed: " + repr(e), title="RAG", style="red")
+
+
+def show_memory():
+    try:
+        from agent_core.memory import memory_list
+        result = memory_list(scope="all", limit=40)
+        say_panel(result, title="Memory", style="cyan")
+    except Exception as e:
+        say_panel("Memory failed: " + repr(e), title="Memory", style="red")
+
+
+def terminal_search_files(query):
+    try:
+        import json
+        from agent_core.search_diff import search_files_text
+        result = search_files_text(query)
+        say_panel(result, title="Search", style="cyan")
+    except Exception as e:
+        say_panel("Search failed: " + repr(e), title="Search", style="red")
+
+
+def terminal_snapshot(root):
+    try:
+        import json
+        from agent_core.search_diff import make_snapshot
+        result = make_snapshot(root or "workspace")
+        say_panel(json.dumps(result, indent=2), title="Snapshot", style="green")
+    except Exception as e:
+        say_panel("Snapshot failed: " + repr(e), title="Snapshot", style="red")
+
+
+def terminal_changed(root):
+    try:
+        from agent_core.search_diff import changed_files_text
+        result = changed_files_text(root or "workspace")
+        say_panel(result, title="Changed", style="cyan")
+    except Exception as e:
+        say_panel("Changed files failed: " + repr(e), title="Changed", style="red")
+
+
+def terminal_diff(args):
+    try:
+        parts = str(args or "").strip().split(" ", 1)
+        root = parts[0] if parts else "workspace"
+        rel_path = parts[1] if len(parts) > 1 else ""
+        if not rel_path:
+            say_panel("Usage: /diff <root> <file-path>", title="Diff", style="yellow")
+            return
+        from agent_core.search_diff import diff_file
+        result = diff_file(root, rel_path)
+        say_panel(result, title="Diff", style="cyan")
+    except Exception as e:
+        say_panel("Diff failed: " + repr(e), title="Diff", style="red")
+
+
+def run_shell_terminal(command):
+    try:
+        from agent_core.tools import run_command
+        result = run_command(command)
+        say_panel(result, title="Shell", style="cyan")
+    except Exception as e:
+        say_panel("Shell command failed: " + repr(e), title="Shell", style="red")
+
+
+def web_search_terminal(query):
+    try:
+        from agent_core.web_tools import web_search
+        result = web_search(query)
+        say_panel(result, title="Web Search", style="cyan")
+    except Exception as e:
+        say_panel("Web search failed: " + repr(e), title="Web Search", style="red")
+
+
+def fetch_url_terminal(url):
+    try:
+        from agent_core.web_tools import fetch_url
+        result = fetch_url(url)
+        say_panel(result, title="Fetch", style="cyan")
+    except Exception as e:
+        say_panel("Fetch failed: " + repr(e), title="Fetch", style="red")
+
+
+def download_url_terminal(args):
+    try:
+        parts = str(args or "").strip().split(" ", 1)
+        url = parts[0] if parts else ""
+        filename = parts[1] if len(parts) > 1 else ""
+        if not url:
+            say_panel("Usage: /download <url> [filename]", title="Download", style="yellow")
+            return
+        from agent_core.web_tools import download_url
+        result = download_url(url, filename or "")
+        say_panel(result, title="Download", style="green")
+    except Exception as e:
+        say_panel("Download failed: " + repr(e), title="Download", style="red")
+
+
+def remember_terminal(text):
+    try:
+        from agent_core.memory import memory_save
+        result = memory_save(text, kind="project_fact", scope="project", tags=["terminal"])
+        say_panel(result, title="Remember", style="green")
+    except Exception as e:
+        say_panel("Remember failed: " + repr(e), title="Remember", style="red")
+
+
+def recall_terminal(query):
+    try:
+        from agent_core.memory import memory_search
+        result = memory_search(query, scope="all", limit=8)
+        say_panel(result, title="Recall", style="cyan")
+    except Exception as e:
+        say_panel("Recall failed: " + repr(e), title="Recall", style="red")
+
+
+def forget_terminal(id_str):
+    try:
+        from agent_core.memory import memory_delete
+        result = memory_delete(id_str)
+        say_panel(result, title="Forget", style="yellow")
+    except Exception as e:
+        say_panel("Forget failed: " + repr(e), title="Forget", style="red")
+
+
+def run_rag_index():
+    try:
+        from agent_core.rag import rag_index
+        result = rag_index()
+        say_panel(result, title="RAG Index", style="green")
+    except Exception as e:
+        say_panel("RAG index failed: " + repr(e), title="RAG Index", style="red")
+
+
+def run_rag_search(query):
+    try:
+        from agent_core.rag import rag_search
+        result = rag_search(query, top_k=5)
+        say_panel(result, title="RAG Search", style="cyan")
+    except Exception as e:
+        say_panel("RAG search failed: " + repr(e), title="RAG Search", style="red")
+
+
+def create_skill_terminal(args):
+    try:
+        parts = str(args or "").strip().split(" ", 1)
+        name = parts[0] if parts else ""
+        desc = parts[1] if len(parts) > 1 else ""
+        if not name:
+            say_panel("Usage: /skill-create <name> [description]", title="Skill", style="yellow")
+            return
+        from agent_core.skills import create_skill_pack
+        result = create_skill_pack(name, desc)
+        say_panel(str(result), title="Skill Created", style="green")
+    except Exception as e:
+        say_panel("Skill create failed: " + repr(e), title="Skill", style="red")
+
+
+def run_skill_terminal(args):
+    try:
+        parts = str(args or "").strip().split(" ", 1)
+        name = parts[0] if parts else ""
+        task = parts[1] if len(parts) > 1 else ""
+        if not name:
+            say_panel("Usage: /skill <name> [task]", title="Skill", style="yellow")
+            return
+        from agent_core.skills import run_skill
+        result = run_skill(name, task)
+        say_panel(str(result), title="Skill Result", style="cyan")
+    except Exception as e:
+        say_panel("Skill run failed: " + repr(e), title="Skill", style="red")
+
+
+def install_dependency_terminal(package):
+    try:
+        from agent_core.skills import install_dependency
+        result = install_dependency(package)
+        say_panel(str(result), title="Install", style="green")
+    except Exception as e:
+        say_panel("Install failed: " + repr(e), title="Install", style="red")
+
+
+def run_team_task(task):
+    try:
+        from agent_core.subagents import run_team
+        result = run_team(task)
+        say_panel(str(result), title="Team", style="cyan")
+    except Exception as e:
+        say_panel("Team task failed: " + repr(e), title="Team", style="red")
+
+
+def terminal_video_status():
+    try:
+        import json
+        from agent_core.media_engine import video_status
+        say_panel(json.dumps(video_status(), indent=2), title="Video Status", style="cyan")
+    except Exception as e:
+        say_panel("Video status failed: " + repr(e), title="Video Status", style="red")
+
+
+def terminal_video_image_backend(backend):
+    try:
+        import json
+        from agent_core.media_engine import set_video_image_backend
+        result = set_video_image_backend(backend)
+        say_panel(json.dumps(result, indent=2), title="Video Backend", style="green")
+    except Exception as e:
+        say_panel("Video image backend failed: " + repr(e), title="Video Backend", style="red")
+
+
 def repl():
     startup()
     print("Type /help for commands.")
@@ -1085,373 +1323,283 @@ def repl():
 
         try:
             lower = command.lower()
-            # TITAN_COMFY_COMMANDS_V1
-            # TITAN_VIDEO_KEYFRAME_COMMANDS_V3
+
+            # ── NSFW / explicit ───────────────────────────────────
+            if lower.startswith("/porn "):
+                prompt = command.replace("/porn ", "", 1).strip()
+                from agent_core.video_tools import create_explicit_video
+                res = create_explicit_video(prompt, seconds=8, fps=24)
+                say_panel(json.dumps(res, indent=2), title="Explicit", style="magenta")
+                continue
+
+            # ── Video ──────────────────────────────────────────────
             if lower.startswith("/video "):
                 terminal_create_video(command.replace("/video ", "", 1).strip())
                 continue
-
             if lower == "/videos":
                 terminal_list_videos()
                 continue
-
             if lower == "/video-status":
                 terminal_video_status()
                 continue
-
             if lower.startswith("/video-quality "):
                 terminal_video_quality(command.replace("/video-quality ", "", 1).strip())
                 continue
-
             if lower.startswith("/video-motion "):
                 terminal_video_motion(command.replace("/video-motion ", "", 1).strip())
                 continue
-
             if lower.startswith("/video-image-backend "):
                 terminal_video_image_backend(command.replace("/video-image-backend ", "", 1).strip())
                 continue
 
-
-            if lower.startswith("/video-motion "):
-                terminal_video_motion(command.replace("/video-motion ", "", 1).strip())
-                continue
-
-
-            if lower.startswith("/video "):
-                terminal_create_video(command.replace("/video ", "", 1).strip())
-                continue
-
-            if lower == "/videos":
-                terminal_list_videos()
-                continue
-
-            if lower.startswith("/video-quality "):
-                terminal_video_quality(command.replace("/video-quality ", "", 1).strip())
-                continue
-
-
+            # ── ComfyUI ───────────────────────────────────────────
             if lower == "/comfy-status":
                 terminal_comfy_status()
                 continue
-
             if lower == "/comfy-start":
                 terminal_comfy_start()
                 continue
-
             if lower == "/comfy-stop":
                 terminal_comfy_stop()
                 continue
-
             if lower.startswith("/comfy-image "):
                 terminal_comfy_image(command.replace("/comfy-image ", "", 1).strip())
                 continue
-
-            if lower == "/image-backend comfyui":
-                terminal_set_image_backend_simple("comfyui")
+            # ── Image / GIF ──────────────────────────────────────
+            if lower.startswith("/image-backend"):
+                arg = command.replace("/image-backend", "", 1).strip().lower()
+                if arg in ["comfyui", "pollinations", "local"]:
+                    terminal_set_image_backend_simple(arg)
+                else:
+                    terminal_image_status()
                 continue
-
-
-            if lower == "/comfy-status":
-                terminal_comfy_status()
+            if lower.startswith("/image-enhance"):
+                val = command.replace("/image-enhance", "", 1).strip() or "on"
+                try:
+                    import json
+                    from agent_core.media_engine import set_image_enhance
+                    say_panel(json.dumps(set_image_enhance(val), indent=2), title="Image Enhance", style="green")
+                except Exception as e:
+                    say_panel("Image enhance failed: " + repr(e), title="Image Enhance", style="red")
                 continue
-
-            if lower == "/comfy-start":
-                terminal_comfy_start()
-                continue
-
-            if lower == "/comfy-stop":
-                terminal_comfy_stop()
-                continue
-
-            if lower.startswith("/comfy-image "):
-                terminal_comfy_image(command.replace("/comfy-image ", "", 1).strip())
-                continue
-
-
-            if lower.startswith("/upscale "):
-                terminal_upscale_image(command.replace("/upscale ", "", 1).strip())
-                continue
-
-
-            if lower == "/image-backend":
-                terminal_image_status()
-                continue
-
-            if lower == "/image-enhance":
-                terminal_image_status()
-                continue
-
-
             if lower.startswith("/image "):
                 terminal_create_image(command.replace("/image ", "", 1).strip())
                 continue
-
             if lower.startswith("/gif "):
                 terminal_create_gif(command.replace("/gif ", "", 1).strip())
                 continue
-
             if lower == "/images":
                 terminal_list_images()
                 continue
 
-
+            # ── Permissions ──────────────────────────────────────
             if lower == "/mode":
                 show_permission_mode()
                 continue
-
             if lower == "/safe":
                 set_permission_mode_terminal("safe")
                 continue
-
             if lower == "/power":
                 set_permission_mode_terminal("power")
                 continue
-
             if lower == "/agentic":
                 set_permission_mode_terminal("agentic")
                 continue
 
+            # ── Idea chat modes ──────────────────────────────────
             if lower.startswith("/idea "):
                 terminal_idea_chat(command.replace("/idea ", "", 1).strip(), mode="idea")
                 continue
-
             if lower.startswith("/brainstorm "):
                 terminal_idea_chat(command.replace("/brainstorm ", "", 1).strip(), mode="brainstorm")
                 continue
-
             if lower.startswith("/critic "):
                 terminal_idea_chat(command.replace("/critic ", "", 1).strip(), mode="critic")
                 continue
-
             if lower.startswith("/builder "):
                 terminal_idea_chat(command.replace("/builder ", "", 1).strip(), mode="builder")
                 continue
-
             if lower.startswith("/simple "):
                 terminal_idea_chat(command.replace("/simple ", "", 1).strip(), mode="simple")
                 continue
-
             if lower.startswith("/idea-model "):
                 terminal_set_idea_model(command.replace("/idea-model ", "", 1).strip())
                 continue
 
-
-
+            # ── Core ──────────────────────────────────────────────
             if lower in ["/exit", "exit", "quit"]:
                 break
-
             if lower == "/help":
                 help_menu()
                 continue
-
             if lower == "/doctor":
                 doctor()
                 continue
-
             if lower == "/models":
                 models()
                 continue
-
             if lower == "/agents":
                 show_agents()
                 continue
-
             if lower == "/skills":
                 show_skills()
                 continue
 
+            # ── Products ─────────────────────────────────────────
             if lower == "/products":
                 terminal_products()
                 continue
-
             if lower == "/templates":
                 terminal_templates()
                 continue
-
             if lower.startswith("/product-template "):
                 terminal_product_template(command.replace("/product-template ", "", 1).strip())
                 continue
-
-            if lower.startswith("/search "):
-                terminal_search_files(command.replace("/search ", "", 1).strip())
-                continue
-
-            if lower.startswith("/snapshot"):
-                terminal_snapshot(command.replace("/snapshot", "", 1).strip())
-                continue
-
-            if lower.startswith("/changed"):
-                terminal_changed(command.replace("/changed", "", 1).strip())
-                continue
-
-            if lower.startswith("/diff "):
-                terminal_diff(command.replace("/diff ", "", 1).strip())
-                continue
-
             if lower.startswith("/product-create "):
                 terminal_product_create(command.replace("/product-create ", "", 1).strip())
                 continue
-
             if lower.startswith("/product-start "):
                 terminal_product_start(command.replace("/product-start ", "", 1).strip())
                 continue
-
             if lower.startswith("/product-stop "):
                 terminal_product_stop(command.replace("/product-stop ", "", 1).strip())
                 continue
-
             if lower.startswith("/product-logs "):
                 terminal_product_logs(command.replace("/product-logs ", "", 1).strip())
                 continue
 
-            if lower == "/rag":
-                show_rag_status()
+            # ── Search / snapshot / diff ──────────────────────────
+            if lower.startswith("/search "):
+                terminal_search_files(command.replace("/search ", "", 1).strip())
+                continue
+            if lower.startswith("/snapshot"):
+                terminal_snapshot(command.replace("/snapshot", "", 1).strip())
+                continue
+            if lower.startswith("/changed"):
+                terminal_changed(command.replace("/changed", "", 1).strip())
+                continue
+            if lower.startswith("/diff "):
+                terminal_diff(command.replace("/diff ", "", 1).strip())
                 continue
 
+            # ── Memory ───────────────────────────────────────────
             if lower == "/memory":
                 show_memory()
                 continue
-
-            if lower.startswith("/section "):
-                terminal_section(command.replace("/section ", "", 1).strip())
-                continue
-
-            if lower == "/sections":
-                terminal_sections()
-                continue
-
-            if lower.startswith("/history-search "):
-                terminal_history_search(command.replace("/history-search ", "", 1).strip())
-                continue
-
-            if lower.startswith("/history"):
-                terminal_history(command.replace("/history", "", 1).strip())
-                continue
-
-            if lower.startswith("/export-history"):
-                terminal_export_history(command.replace("/export-history", "", 1).strip())
-                continue
-
-            if lower == "/mode":
-                show_permission_mode()
-                continue
-
-            if lower == "/safe":
-                set_permission_mode_terminal("safe")
-                continue
-
-            if lower == "/power":
-                set_permission_mode_terminal("power")
-                continue
-
-            if lower == "/agentic":
-                set_permission_mode_terminal("agentic")
-                continue
-
-            if lower.startswith("/run "):
-                run_shell_terminal(command.replace("/run ", "", 1).strip())
-                continue
-
-            if lower.startswith("/web "):
-                web_search_terminal(command.replace("/web ", "", 1).strip())
-                continue
-
-            if lower.startswith("/fetch "):
-                fetch_url_terminal(command.replace("/fetch ", "", 1).strip())
-                continue
-
-            if lower.startswith("/download "):
-                download_url_terminal(command.replace("/download ", "", 1).strip())
-                continue
-
             if lower.startswith("/remember "):
                 remember_terminal(command.replace("/remember ", "", 1).strip())
                 continue
-
             if lower.startswith("/recall "):
                 recall_terminal(command.replace("/recall ", "", 1).strip())
                 continue
-
             if lower.startswith("/forget "):
                 forget_terminal(command.replace("/forget ", "", 1).strip())
                 continue
 
+            # ── RAG ──────────────────────────────────────────────
+            if lower == "/rag":
+                show_rag_status()
+                continue
             if lower == "/rag-index":
                 run_rag_index()
                 continue
-
             if lower.startswith("/rag-search "):
                 run_rag_search(command.replace("/rag-search ", "", 1).strip())
                 continue
 
+            # ── History ──────────────────────────────────────────
+            if lower.startswith("/section "):
+                terminal_section(command.replace("/section ", "", 1).strip())
+                continue
+            if lower == "/sections":
+                terminal_sections()
+                continue
+            if lower.startswith("/history-search "):
+                terminal_history_search(command.replace("/history-search ", "", 1).strip())
+                continue
+            if lower.startswith("/history"):
+                terminal_history(command.replace("/history", "", 1).strip())
+                continue
+            if lower.startswith("/export-history"):
+                terminal_export_history(command.replace("/export-history", "", 1).strip())
+                continue
+
+            # ── Shell / web ─────────────────────────────────────
+            if lower.startswith("/run "):
+                run_shell_terminal(command.replace("/run ", "", 1).strip())
+                continue
+            if lower.startswith("/web "):
+                web_search_terminal(command.replace("/web ", "", 1).strip())
+                continue
+            if lower.startswith("/fetch "):
+                fetch_url_terminal(command.replace("/fetch ", "", 1).strip())
+                continue
+            if lower.startswith("/download "):
+                download_url_terminal(command.replace("/download ", "", 1).strip())
+                continue
+
+            # ── Skills ───────────────────────────────────────────
             if lower.startswith("/skill-create "):
                 create_skill_terminal(command.replace("/skill-create ", "", 1).strip())
                 continue
-
             if lower.startswith("/skill "):
                 run_skill_terminal(command.replace("/skill ", "", 1).strip())
                 continue
-
             if lower.startswith("/pip "):
                 install_dependency_terminal(command.replace("/pip ", "", 1).strip())
                 continue
 
+            # ── Team ────────────────────────────────────────────
             if lower.startswith("/team "):
                 run_team_task(command.replace("/team ", "", 1).strip())
                 continue
 
+            # ── Model profiles ───────────────────────────────────
             if lower == "/tiny":
                 set_model_profile("tiny")
                 continue
-
             if lower == "/fast":
                 set_model_profile("fast")
                 continue
-
             if lower == "/coder":
                 set_model_profile("coder")
                 continue
-
             if lower == "/smart":
                 set_model_profile("smart")
                 continue
-
             if lower == "/heavy":
                 set_model_profile("heavy")
                 continue
-
             if lower == "/max":
                 set_model_profile("max")
                 continue
 
+            # ── Dashboard / workspace / jobs ──────────────────────
             if lower in ["/dashboard", "launch dashboard", "open dashboard", "start dashboard"]:
                 launch_dashboard()
                 continue
-
             if lower == "/tree":
                 workspace_tree()
                 continue
-
             if lower.startswith("/bg "):
                 bg_job(command.replace("/bg ", "", 1).strip())
                 continue
-
             if lower == "/jobs":
                 jobs()
                 continue
-
             if lower.startswith("/job "):
                 show_job(command.replace("/job ", "", 1).strip())
                 continue
-
             if lower.startswith("/trace-job "):
                 show_trace(command.replace("/trace-job ", "", 1).strip())
                 continue
 
+            # ── Unknown slash command ────────────────────────────
             if lower.startswith("/"):
                 say_panel(f"Unknown command: {command}\nType /help.", title="Unknown Command", style="yellow")
                 continue
 
+            # ── Natural language ────────────────────────────────
             result = run_titan_prompt(command)
             say_panel(result, title="Titan", style="magenta")
 

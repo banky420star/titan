@@ -1,192 +1,171 @@
-from pathlib import Path
-from datetime import datetime
-import json
-import random
+"""ComfyUI bridge — connects to a local ComfyUI instance for image generation."""
+
 import subprocess
-import time
-import urllib.parse
-import urllib.request
+import sys
+from pathlib import Path
 
 BASE = Path("/Volumes/AI_DRIVE/TitanAgent")
-COMFY = BASE / "local_ai" / "ComfyUI"
-OUT = BASE / "downloads" / "images"
-LOGS = BASE / "logs" / "comfyui"
-PID_FILE = LOGS / "comfyui.pid"
-
-HOST = "127.0.0.1"
-PORT = 8188
-URL = f"http://{HOST}:{PORT}"
-
-OUT.mkdir(parents=True, exist_ok=True)
-LOGS.mkdir(parents=True, exist_ok=True)
+COMFYUI_DIR = BASE / "models" / "ComfyUI"
+COMFYUI_URL = "http://127.0.0.1:8188"
+_comfy_process = None
 
 
-def now():
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
+def _load_config():
+    import json
+    cfg_path = BASE / "config.json"
+    if cfg_path.exists():
+        return json.loads(cfg_path.read_text(encoding="utf-8"))
+    return {}
 
 
-def api_get(path, timeout=5):
-    with urllib.request.urlopen(URL + path, timeout=timeout) as r:
-        return r.read()
+def comfy_info():
+    """Return ComfyUI connection status and config."""
+    import json
+    import urllib.request
 
+    cfg = _load_config()
+    status = {
+        "running": False,
+        "url": COMFYUI_URL,
+        "image_backend": cfg.get("image_backend", "pollinations"),
+        "comfy_steps": cfg.get("comfy_steps", 4),
+        "comfy_cfg": cfg.get("comfy_cfg", 1.0),
+    }
 
-def api_json(path, timeout=5):
-    return json.loads(api_get(path, timeout).decode("utf-8"))
+    try:
+        req = urllib.request.Request(COMFYUI_URL, headers={"User-Agent": "TitanAgent/1.0"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            if resp.status == 200:
+                status["running"] = True
+    except Exception:
+        pass
 
-
-def api_post(path, payload, timeout=30):
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        URL + path,
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    return status
 
 
 def comfy_status():
-    installed = COMFY.exists()
-    checkpoints = []
-
-    ckpt_dir = COMFY / "models" / "checkpoints"
-    if ckpt_dir.exists():
-        checkpoints = [p.name for p in sorted(ckpt_dir.glob("*.safetensors"))]
-
-    try:
-        api_get("/system_stats", timeout=2)
-        running = True
-        error = None
-    except Exception as e:
-        running = False
-        error = repr(e)
-
-    return {
-        "installed": installed,
-        "running": running,
-        "url": URL,
-        "checkpoints": checkpoints,
-        "error": error,
-        "install_note": "Expected ComfyUI folder: /Volumes/AI_DRIVE/TitanAgent/local_ai/ComfyUI"
-    }
+    """Alias for comfy_info."""
+    return comfy_info()
 
 
 def start_comfyui():
-    status = comfy_status()
+    """Start ComfyUI server if not already running."""
+    global _comfy_process
 
-    if status.get("running"):
-        return {"result": "already running", "url": URL, "status": status}
+    info = comfy_info()
+    if info["running"]:
+        return {"result": "already running", "url": COMFYUI_URL}
 
-    if not COMFY.exists():
-        return {
-            "error": "ComfyUI is not installed.",
-            "expected_path": str(COMFY),
-            "next": "Install ComfyUI first, then run /comfy-start again."
-        }
+    main_py = COMFYUI_DIR / "main.py"
+    if not main_py.exists():
+        return {"error": f"ComfyUI not found at {COMFYUI_DIR}"}
 
-    script = BASE / "scripts" / "start_comfyui.sh"
-    stdout = LOGS / "comfyui.stdout.log"
-    stderr = LOGS / "comfyui.stderr.log"
-
-    p = subprocess.Popen(
-        [str(script)],
-        cwd=str(BASE),
-        stdout=stdout.open("a"),
-        stderr=stderr.open("a"),
-        start_new_session=True,
-    )
-
-    PID_FILE.write_text(str(p.pid), encoding="utf-8")
-
-    for _ in range(90):
-        status = comfy_status()
-        if status.get("running"):
-            return {
-                "result": "started",
-                "pid": p.pid,
-                "url": URL,
-                "stdout": str(stdout),
-                "stderr": str(stderr),
-                "status": status
-            }
-        time.sleep(1)
-
-    return {
-        "result": "starting",
-        "pid": p.pid,
-        "url": URL,
-        "stdout": str(stdout),
-        "stderr": str(stderr),
-        "note": "ComfyUI is still warming up. Run /comfy-status."
-    }
+    try:
+        _comfy_process = subprocess.Popen(
+            [sys.executable, str(main_py), "--listen", "127.0.0.1", "--port", "8188"],
+            cwd=str(COMFYUI_DIR),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        return {"result": "ComfyUI starting", "url": COMFYUI_URL, "pid": _comfy_process.pid}
+    except Exception as e:
+        return {"error": f"Failed to start ComfyUI: {e}"}
 
 
 def stop_comfyui():
-    if not PID_FILE.exists():
-        return {"result": "no pid file", "url": URL}
+    """Stop the ComfyUI server process."""
+    global _comfy_process
+
+    if _comfy_process is not None and _comfy_process.poll() is None:
+        _comfy_process.terminate()
+        try:
+            _comfy_process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            _comfy_process.kill()
+        _comfy_process = None
+        return {"result": "ComfyUI stopped"}
 
     try:
-        pid = int(PID_FILE.read_text(encoding="utf-8").strip())
+        result = subprocess.run(
+            ["pkill", "-f", "ComfyUI"],
+            capture_output=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return {"result": "ComfyUI process killed"}
     except Exception:
-        PID_FILE.unlink(missing_ok=True)
-        return {"result": "bad pid file removed"}
+        pass
 
-    subprocess.run(["kill", str(pid)], check=False)
-    PID_FILE.unlink(missing_ok=True)
-
-    return {"result": "stopped", "pid": pid, "url": URL}
+    return {"result": "No ComfyUI process found"}
 
 
-def pick_checkpoint():
-    ckpt_dir = COMFY / "models" / "checkpoints"
-    ckpts = sorted(ckpt_dir.glob("*.safetensors"))
+def _find_checkpoint():
+    """Find an available checkpoint in ComfyUI's models directory."""
+    ckpt_dir = COMFYUI_DIR / "models" / "checkpoints"
+    if not ckpt_dir.exists():
+        return None
+    for ext in ["*.safetensors", "*.ckpt", "*.pt"]:
+        for f in sorted(ckpt_dir.rglob(ext)):
+            return f.name
+    return None
 
-    if not ckpts:
-        raise RuntimeError("No .safetensors checkpoint found in ComfyUI/models/checkpoints")
 
-    return ckpts[0].name
+def comfy_image(prompt, width=1024, height=1536):
+    """Generate an image by sending a workflow to ComfyUI.
 
+    This talks DIRECTLY to ComfyUI's API — does NOT call media_engine.create_image.
+    Raises RuntimeError if ComfyUI is not running or generation fails.
+    """
+    import json
+    import urllib.request
+    import ssl
 
-def workflow(prompt, width=768, height=768, steps=4, cfg=1.0, seed=None):
-    seed = int(seed if seed is not None else random.randint(1, 2**31 - 1))
-    ckpt = pick_checkpoint()
+    info = comfy_info()
+    if not info["running"]:
+        raise RuntimeError("ComfyUI is not running")
 
-    negative = (
-        "random text, watermark, logo, malformed anatomy, duplicate features, blurry, low quality, "
-        "extra limbs, bad hands, bad eyes, distorted face"
-    )
+    checkpoint = _find_checkpoint()
+    if not checkpoint:
+        raise RuntimeError("No checkpoint found in ComfyUI models directory")
 
-    return {
-        "4": {
-            "class_type": "CheckpointLoaderSimple",
-            "inputs": {"ckpt_name": ckpt}
-        },
-        "5": {
-            "class_type": "CLIPTextEncode",
-            "inputs": {"text": prompt, "clip": ["4", 1]}
-        },
-        "6": {
-            "class_type": "CLIPTextEncode",
-            "inputs": {"text": negative, "clip": ["4", 1]}
-        },
-        "7": {
-            "class_type": "EmptyLatentImage",
-            "inputs": {"width": int(width), "height": int(height), "batch_size": 1}
-        },
+    cfg = _load_config()
+    steps = int(cfg.get("comfy_steps", 4))
+    cfg_scale = float(cfg.get("comfy_cfg", 1.0))
+
+    # Minimal SD/SDXL text-to-image workflow
+    workflow = {
         "3": {
             "class_type": "KSampler",
             "inputs": {
-                "seed": seed,
-                "steps": int(steps),
-                "cfg": float(cfg),
+                "seed": abs(hash(prompt)) % 999999999,
+                "steps": steps,
+                "cfg": cfg_scale,
                 "sampler_name": "euler",
                 "scheduler": "normal",
                 "denoise": 1.0,
                 "model": ["4", 0],
-                "positive": ["5", 0],
-                "negative": ["6", 0],
-                "latent_image": ["7", 0]
+                "positive": ["6", 0],
+                "negative": ["7", 0],
+                "latent_image": ["5", 0],
+            }
+        },
+        "4": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": checkpoint}
+        },
+        "5": {
+            "class_type": "EmptyLatentImage",
+            "inputs": {"width": width, "height": height, "batch_size": 1}
+        },
+        "6": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": prompt, "clip": ["4", 1]}
+        },
+        "7": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "low quality, blurry, distorted, watermark, text, extra limbs",
+                "clip": ["4", 1]
             }
         },
         "8": {
@@ -195,71 +174,64 @@ def workflow(prompt, width=768, height=768, steps=4, cfg=1.0, seed=None):
         },
         "9": {
             "class_type": "SaveImage",
-            "inputs": {"images": ["8", 0], "filename_prefix": "Titan_Comfy"}
+            "inputs": {"filename_prefix": "titan", "images": ["8", 0]}
         }
     }
 
+    payload = {"prompt": workflow}
 
-def download_view(filename, subfolder="", folder_type="output"):
-    query = urllib.parse.urlencode({
-        "filename": filename,
-        "subfolder": subfolder,
-        "type": folder_type,
-    })
+    ctx = ssl._create_unverified_context() if not cfg.get("verify_ssl", True) else ssl.create_default_context()
+    req = urllib.request.Request(
+        COMFYUI_URL + "/prompt",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
 
-    raw = api_get("/view?" + query, timeout=60)
-    out = OUT / f"{now()}_{filename}"
-    out.write_bytes(raw)
-    return out
+    with urllib.request.urlopen(req, timeout=180, context=ctx) as resp:
+        data = json.loads(resp.read())
 
+    prompt_id = data.get("prompt_id")
 
-def comfy_image(prompt, width=768, height=768, steps=4, cfg=1.0):
-    status = comfy_status()
+    # Poll for completion
+    import time
+    for _ in range(60):
+        time.sleep(3)
+        try:
+            hist_req = urllib.request.Request(
+                f"{COMFYUI_URL}/history/{prompt_id}",
+                headers={"User-Agent": "TitanAgent/1.0"},
+            )
+            with urllib.request.urlopen(hist_req, timeout=10, context=ctx) as hist_resp:
+                hist = json.loads(hist_resp.read())
+                if prompt_id in hist:
+                    outputs = hist[prompt_id].get("outputs", {})
+                    images = outputs.get("9", {}).get("images", [])
+                    if images:
+                        img_data = images[0]
+                        filename = img_data["filename"]
+                        subfolder = img_data.get("subfolder", "")
+                        img_url = f"{COMFYUI_URL}/view?filename={filename}"
+                        if subfolder:
+                            img_url += f"&subfolder={subfolder}"
+                        from agent_core.media_engine import IMAGE_OUT, stamp, slug
+                        out_path = IMAGE_OUT / f"{stamp()}_{slug(prompt)}.png"
+                        img_req = urllib.request.Request(img_url, headers={"User-Agent": "TitanAgent/1.0"})
+                        with urllib.request.urlopen(img_req, timeout=30, context=ctx) as img_resp:
+                            out_path.write_bytes(img_resp.read())
+                        return {
+                            "result": "image created",
+                            "backend": "comfyui",
+                            "prompt": prompt,
+                            "path": str(out_path),
+                        }
+        except Exception:
+            continue
 
-    if not status.get("running"):
-        started = start_comfyui()
-        status = comfy_status()
-
-        if not status.get("running"):
-            return {
-                "error": "ComfyUI is not running.",
-                "start_attempt": started,
-                "status": status
-            }
-
-    wf = workflow(prompt, width=width, height=height, steps=steps, cfg=cfg)
-    res = api_post("/prompt", {"prompt": wf}, timeout=30)
-    prompt_id = res["prompt_id"]
-
-    for _ in range(240):
-        hist = api_json("/history/" + prompt_id, timeout=10)
-
-        if prompt_id in hist:
-            outputs = hist[prompt_id].get("outputs", {})
-
-            for node in outputs.values():
-                for img in node.get("images", []):
-                    path = download_view(
-                        img["filename"],
-                        img.get("subfolder", ""),
-                        img.get("type", "output"),
-                    )
-
-                    subprocess.Popen(["open", str(path)])
-
-                    return {
-                        "result": "image created",
-                        "backend": "comfyui-local",
-                        "path": str(path),
-                        "prompt": prompt,
-                        "checkpoint": pick_checkpoint(),
-                        "url": URL
-                    }
-
-        time.sleep(1)
-
-    return {"error": "Timed out waiting for image.", "prompt_id": prompt_id}
+    raise RuntimeError("ComfyUI generation timed out")
 
 
-def comfy_info():
-    return comfy_status()
+def queue_prompt(workflow=None, positive=None):
+    """Queue a prompt on ComfyUI."""
+    prompt = positive or "image generation prompt"
+    return comfy_image(prompt)
