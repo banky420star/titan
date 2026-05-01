@@ -263,7 +263,7 @@ def create_image(prompt, width=None, height=None, open_file=True, nsfw=False):
 # GIF generation
 # ---------------------------------------------------------------------------
 
-def create_gif(prompt, width=None, height=None, frames=28, open_file=True):
+def create_gif(prompt, width=None, height=None, frames=28, open_file=True, nsfw=False):
     import math
     import random
     cfg = load_config()
@@ -271,7 +271,7 @@ def create_gif(prompt, width=None, height=None, frames=28, open_file=True):
     height = int(height or cfg.get("gif_height", 512))
     prompt = clean_prompt(prompt)
 
-    base_result = create_image(prompt, width=width, height=height, open_file=False)
+    base_result = create_image(prompt, width=width, height=height, open_file=False, nsfw=nsfw)
     base = Image.open(base_result["path"]).convert("RGB").resize((width, height))
 
     imgs = []
@@ -293,7 +293,8 @@ def create_gif(prompt, width=None, height=None, frames=28, open_file=True):
         )
         imgs.append(frame)
 
-    path = IMAGE_OUT / f"{stamp()}_{slug(prompt)}.gif"
+    out_dir = NSFW_OUT if nsfw else IMAGE_OUT
+    path = out_dir / f"{stamp()}_{slug(prompt)}.gif"
     imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=80, loop=0)
 
     if open_file:

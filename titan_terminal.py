@@ -805,6 +805,7 @@ TITAN_SLASH_COMMANDS = [
     "/rag-index",
     "/rag-search ",
     "/exit",
+    "/porn ",
 ]
 
 TITAN_SLASH_META = {
@@ -883,6 +884,7 @@ TITAN_SLASH_META = {
     "/skill ": "Run a skill pack",
     "/pip ": "Install a Python package",
     "/exit": "Quit Titan",
+    "/porn ": "Create explicit video/image",
 }
 
 

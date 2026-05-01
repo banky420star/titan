@@ -1726,6 +1726,7 @@ HTML = r"""
         <button onclick="showView('rag', this); loadRag()">⌕ RAG</button>
         <button onclick="showView('models', this); loadModels()">☷ Models</button>
         <button onclick="showView('permissions', this); loadMode()">⚙ Permissions</button>
+        <button onclick="showView('nsfw', this); loadNsfwStatus()">🔥 NSFW</button>
       </nav>
 
       <button class="palette-button" onclick="openCommandPalette()">⌘K Command Palette</button>
@@ -1875,6 +1876,34 @@ HTML = r"""
                 <button class="btn primary" onclick="runTeamTask()">Run Team Task</button>
               </div>
               <pre id="teamOut">Team results will appear here.</pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-nsfw" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <strong>NSFW Studio</strong>
+              <button class="btn" onclick="loadNsfwStatus()">Status</button>
+            </div>
+            <div class="panel-body">
+              <div id="nsfwStatus" class="history-list" style="margin-bottom:12px">Checking NSFW config...</div>
+              <div class="row">
+                <button class="btn" onclick="toggleNsfw()" id="nsfwToggleBtn">Toggle NSFW</button>
+              </div>
+              <hr style="border-color:var(--surface);margin:16px 0">
+              <textarea id="nsfwImagePrompt" class="file-editor" placeholder="Describe the explicit image..."></textarea>
+              <div class="row">
+                <button class="btn primary" onclick="createNsfwImage()">Create Explicit Image</button>
+                <button class="btn" onclick="createNsfwGif()">Create Explicit GIF</button>
+              </div>
+              <hr style="border-color:var(--surface);margin:16px 0">
+              <textarea id="nsfwVideoPrompt" class="file-editor" placeholder="Describe the explicit video..."></textarea>
+              <div class="row">
+                <button class="btn primary" onclick="createNsfwVideo()">Create Explicit Video</button>
+              </div>
+              <pre id="nsfwOut" style="margin-top:12px">Output appears here.</pre>
+              <div id="nsfwList" class="history-list" style="margin-top:12px">Files appear here.</div>
             </div>
           </div>
         </section>
@@ -3775,6 +3804,47 @@ async function runTeamTask() {
   out.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
 }
 
+// ── NSFW tab ────────────────────────────────────
+async function loadNsfwStatus() {
+  const statusEl = document.getElementById("nsfwStatus");
+  const out = document.getElementById("nsfwOut");
+  const cfg = await jsonFetch("/api/config");
+  const enabled = cfg.nsfw_enabled || cfg.allow_nsfw || false;
+  statusEl.textContent = "NSFW: " + (enabled ? "ENABLED" : "DISABLED") + " | Image backend: " + (cfg.image_backend || "pollinations");
+  out.textContent = "";
+}
+async function toggleNsfw() {
+  const out = document.getElementById("nsfwOut");
+  out.textContent = "Toggling NSFW...";
+  const data = await jsonFetch("/api/nsfw/toggle", {method:"POST"});
+  out.textContent = JSON.stringify(data, null, 2);
+  await loadNsfwStatus();
+}
+async function createNsfwImage() {
+  const prompt = document.getElementById("nsfwImagePrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("nsfwOut");
+  out.textContent = "Creating explicit image...";
+  const data = await jsonFetch("/api/image/create", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt, nsfw: true})});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function createNsfwGif() {
+  const prompt = document.getElementById("nsfwImagePrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("nsfwOut");
+  out.textContent = "Creating explicit GIF...";
+  const data = await jsonFetch("/api/image/gif", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt, nsfw: true})});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function createNsfwVideo() {
+  const prompt = document.getElementById("nsfwVideoPrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("nsfwOut");
+  out.textContent = "Creating explicit video...";
+  const data = await jsonFetch("/api/video/create", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt, nsfw: true})});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+
 </script>
 
   <!-- TITAN_COMMAND_PALETTE_HTML_START -->
@@ -4126,7 +4196,12 @@ def api_history_export_all():
 @app.route("/api/video/create", methods=["POST"])
 def api_video_create():
     from agent_core.video_tools import create_video
-    return safe(lambda: create_video(request.json.get("prompt", "")))
+    prompt = request.json.get("prompt", "")
+    nsfw = request.json.get("nsfw", False)
+    if nsfw:
+        from agent_core.video_tools import create_explicit_video
+        return safe(lambda: create_explicit_video(prompt))
+    return safe(lambda: create_video(prompt))
 
 
 @app.route("/api/video/list")
@@ -4171,14 +4246,16 @@ def api_image_status():
 def api_image_create():
     from agent_core.media_engine import create_image
     prompt = request.json.get("prompt", "")
-    return safe(lambda: create_image(prompt))
+    nsfw = request.json.get("nsfw", False)
+    return safe(lambda: create_image(prompt, nsfw=nsfw))
 
 
 @app.route("/api/image/gif", methods=["POST"])
 def api_image_gif():
     from agent_core.media_engine import create_gif
     prompt = request.json.get("prompt", "")
-    return safe(lambda: create_gif(prompt))
+    nsfw = request.json.get("nsfw", False)
+    return safe(lambda: create_gif(prompt, nsfw=nsfw))
 
 
 @app.route("/api/image/list")
@@ -4252,6 +4329,23 @@ def api_team_run():
     from agent_core.subagents import run_team
     task = request.json.get("task", "")
     return safe(lambda: run_team(task))
+
+
+# ── Config & NSFW API routes ───────────────────────
+
+@app.route("/api/config")
+def api_config():
+    return jsonify(load_config())
+
+
+@app.route("/api/nsfw/toggle", methods=["POST"])
+def api_nsfw_toggle():
+    cfg = load_config()
+    current = cfg.get("nsfw_enabled", False)
+    cfg["nsfw_enabled"] = not current
+    cfg["allow_nsfw"] = not current
+    CONFIG_PATH.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    return jsonify({"nsfw_enabled": cfg["nsfw_enabled"], "allow_nsfw": cfg["allow_nsfw"]})
 
 
 if __name__ == "__main__":
