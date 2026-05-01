@@ -8,6 +8,8 @@ import sys
 import time
 import urllib.request
 import webbrowser
+import threading
+import itertools
 
 BASE = Path("/Volumes/AI_DRIVE/TitanAgent")
 CONFIG = BASE / "config.json"
@@ -56,6 +58,47 @@ def say_panel(body, title="Titan", style="cyan"):
         console.print(Panel(str(body), title=title, border_style=style))
     else:
         print(f"\n[{title}]\n{body}\n")
+
+
+class ThinkingSpinner:
+    """Animated spinner that shows Titan is thinking."""
+
+    FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+    def __init__(self, message="Thinking"):
+        self.message = message
+        self._stop = threading.Event()
+        self._thread = None
+
+    def _spin(self):
+        i = 0
+        while not self._stop.is_set():
+            frame = self.FRAMES[i % len(self.FRAMES)]
+            sys.stdout.write(f"\r  {frame} {self.message}...")
+            sys.stdout.flush()
+            i += 1
+            self._stop.wait(0.08)
+
+    def start(self):
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._spin, daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self, clear=True):
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=0.5)
+        if clear:
+            sys.stdout.write("\r" + " " * (len(self.message) + 20) + "\r")
+            sys.stdout.flush()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args):
+        self.stop()
 
 
 def titan_logo_text(open_eyes=True):
@@ -678,7 +721,8 @@ def terminal_idea_chat(args, mode="idea"):
             say_panel("Usage: /idea <your idea>", title="Idea Chat", style="yellow")
             return
 
-        result = idea_chat(task, mode=mode)
+        with ThinkingSpinner(f"Thinking ({mode})"):
+            result = idea_chat(task, mode=mode)
         say_panel(result, title=f"Titan {mode.title()}", style="cyan")
     except Exception as e:
         say_panel("Idea chat failed: " + repr(e), title="Idea Chat", style="red")
@@ -710,7 +754,8 @@ def terminal_create_image(args):
             say_panel("Usage: /image <prompt>", title="Image", style="yellow")
             return
 
-        result = create_image(prompt)
+        with ThinkingSpinner("Creating image"):
+            result = create_image(prompt)
         say_panel(json.dumps(result, indent=2), title="Image Created", style="green")
     except Exception as e:
         say_panel("Image creation failed: " + repr(e), title="Image", style="red")
@@ -726,7 +771,8 @@ def terminal_create_gif(args):
             say_panel("Usage: /gif <prompt>", title="GIF", style="yellow")
             return
 
-        result = create_gif(prompt)
+        with ThinkingSpinner("Creating GIF"):
+            result = create_gif(prompt)
         say_panel(json.dumps(result, indent=2), title="GIF Created", style="green")
     except Exception as e:
         say_panel("GIF creation failed: " + repr(e), title="GIF", style="red")
@@ -1055,7 +1101,8 @@ def terminal_comfy_image(args):
             say_panel("Usage: /comfy-image <prompt>", title="ComfyUI Image", style="yellow")
             return
 
-        result = comfy_image(prompt)
+        with ThinkingSpinner("Generating via ComfyUI"):
+            result = comfy_image(prompt)
         say_panel(json.dumps(result, indent=2), title="ComfyUI Image", style="green")
     except Exception as e:
         say_panel("ComfyUI image failed: " + repr(e), title="ComfyUI Image", style="red")
@@ -1128,7 +1175,8 @@ def terminal_create_video(args):
             say_panel("Usage: /video <prompt>", title="Video", style="yellow")
             return
 
-        result = create_video(prompt)
+        with ThinkingSpinner("Creating video"):
+            result = create_video(prompt)
         say_panel(json.dumps(result, indent=2), title="Video Created", style="green")
     except Exception as e:
         say_panel("Video creation failed: " + repr(e), title="Video", style="red")
@@ -1257,7 +1305,8 @@ def run_shell_terminal(command):
 def web_search_terminal(query):
     try:
         from agent_core.web_tools import web_search
-        result = web_search(query)
+        with ThinkingSpinner("Searching"):
+            result = web_search(query)
         say_panel(result, title="Web Search", style="cyan")
     except Exception as e:
         say_panel("Web search failed: " + repr(e), title="Web Search", style="red")
@@ -1266,7 +1315,8 @@ def web_search_terminal(query):
 def fetch_url_terminal(url):
     try:
         from agent_core.web_tools import fetch_url
-        result = fetch_url(url)
+        with ThinkingSpinner("Fetching"):
+            result = fetch_url(url)
         say_panel(result, title="Fetch", style="cyan")
     except Exception as e:
         say_panel("Fetch failed: " + repr(e), title="Fetch", style="red")
@@ -1356,7 +1406,8 @@ def run_skill_terminal(args):
             say_panel("Usage: /skill <name> [task]", title="Skill", style="yellow")
             return
         from agent_core.skills import run_skill
-        result = run_skill(name, task)
+        with ThinkingSpinner(f"Running skill {name}"):
+            result = run_skill(name, task)
         say_panel(str(result), title="Skill Result", style="cyan")
     except Exception as e:
         say_panel("Skill run failed: " + repr(e), title="Skill", style="red")
@@ -1374,7 +1425,8 @@ def install_dependency_terminal(package):
 def run_team_task(task):
     try:
         from agent_core.subagents import run_team
-        result = run_team(task)
+        with ThinkingSpinner("Team working"):
+            result = run_team(task)
         say_panel(str(result), title="Team", style="cyan")
     except Exception as e:
         say_panel("Team task failed: " + repr(e), title="Team", style="red")
@@ -1423,7 +1475,8 @@ def repl():
             if lower.startswith("/porn "):
                 prompt = command.replace("/porn ", "", 1).strip()
                 from agent_core.video_tools import create_explicit_video
-                res = create_explicit_video(prompt, seconds=8, fps=24)
+                with ThinkingSpinner("Creating explicit content"):
+                    res = create_explicit_video(prompt, seconds=8, fps=24)
                 say_panel(json.dumps(res, indent=2), title="Explicit", style="magenta")
                 continue
 
@@ -1713,7 +1766,12 @@ def repl():
                 continue
 
             # ── Natural language ────────────────────────────────
-            result = run_titan_prompt(command)
+            spinner = ThinkingSpinner("Thinking")
+            spinner.start()
+            try:
+                result = run_titan_prompt(command)
+            finally:
+                spinner.stop()
             say_panel(result, title="Titan", style="magenta")
 
         except Exception as e:
