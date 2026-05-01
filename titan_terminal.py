@@ -214,16 +214,32 @@ def startup():
 
 def help_menu():
     say_panel(
-        "/help        Show commands\n"
-        "/doctor      Check core folders/files\n"
-        "/models      Show model config\n"
-        "/dashboard   Launch dashboard on 5050\n"
-        "/tree        Show workspace tree\n"
-        "/bg <task>   Start a simple background job record\n"
-        "/jobs        Show jobs\n"
-        "/exit        Quit\n\n"
-        "Plain text prompts are currently echoed in clean-reset mode.\n"
-        "Next step: wire agent_core and Ollama back in cleanly.",
+        "Core:\n"
+        "  /help /doctor /models /exit /dashboard /tree\n\n"
+        "Jobs:\n"
+        "  /bg <task> /jobs /job <id> /trace-job <id> /cancel <id>\n\n"
+        "Model profiles:\n"
+        "  /tiny /fast /coder /smart /heavy /max\n\n"
+        "Images & Video:\n"
+        "  /image <p> /gif <p> /images /image-backend /image-enhance\n"
+        "  /video <p> /videos /video-status /video-quality /video-motion\n"
+        "  /comfy-status /comfy-start /comfy-stop /comfy-image <p>\n"
+        "  /upscale <file> /porn <p>\n\n"
+        "Products:\n"
+        "  /products /product-create /product-start /product-stop /product-logs /templates\n\n"
+        "Skills & Agents:\n"
+        "  /skills /skill-create /skill <p> /pip <pkg> /agents /team <p>\n\n"
+        "Memory & RAG:\n"
+        "  /memory /remember /recall /forget /rag /rag-index /rag-search\n\n"
+        "Search & Files:\n"
+        "  /search /snapshot /changed /diff /run /web /fetch /download\n\n"
+        "History:\n"
+        "  /history /section /sections /history-search /export-history\n\n"
+        "Ideas:\n"
+        "  /idea /brainstorm /critic /builder /simple /idea-model\n\n"
+        "Permissions:\n"
+        "  /mode /safe /power /agentic\n\n"
+        "Type any command or just ask Titan something.",
         title="Help",
         style="cyan"
     )
@@ -378,7 +394,7 @@ def bg_job(task):
     )
 
     say_panel(
-        f"Started background job: {job_id}\\n\\nUse /jobs or /job {job_id}",
+        f"Started background job: {job_id}\n\nUse /jobs or /job {job_id}",
         title="Background Job",
         style="green"
     )
@@ -397,7 +413,7 @@ def jobs():
             except Exception as e:
                 rows.append(f"{p.name} | unreadable | {e!r}")
 
-    say_panel("\\n".join(rows) if rows else "No jobs found.", title="Jobs", style="cyan")
+    say_panel("\n".join(rows) if rows else "No jobs found.", title="Jobs", style="cyan")
 
 
 def show_job(job_id):
@@ -673,7 +689,7 @@ def terminal_set_idea_model(model):
         import json
         from pathlib import Path
 
-        cfg_path = Path("config.json")
+        cfg_path = CONFIG
         cfg = json.loads(cfg_path.read_text())
         cfg["idea_model"] = str(model or "").strip() or cfg.get("model", "qwen3:8b")
         cfg_path.write_text(json.dumps(cfg, indent=2))
@@ -957,7 +973,7 @@ def terminal_image_status():
         import json
         from pathlib import Path
 
-        cfg_path = Path("config.json")
+        cfg_path = CONFIG
         cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
 
         info = {
@@ -1074,7 +1090,7 @@ def terminal_set_image_backend_simple(backend):
         import json
         from pathlib import Path
 
-        cfg_path = Path("config.json")
+        cfg_path = CONFIG
         cfg = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
 
         backend = str(backend or "").strip() or "comfyui"
@@ -1593,14 +1609,20 @@ def repl():
             if lower == "/sections":
                 terminal_sections()
                 continue
+            if lower == "/history-search":
+                say_panel("Usage: /history-search <query>", title="History Search", style="yellow")
+                continue
             if lower.startswith("/history-search "):
                 terminal_history_search(command.replace("/history-search ", "", 1).strip())
                 continue
+            if lower == "/export-history":
+                terminal_export_history("")
+                continue
+            if lower.startswith("/export-history "):
+                terminal_export_history(command.replace("/export-history", "", 1).strip())
+                continue
             if lower.startswith("/history"):
                 terminal_history(command.replace("/history", "", 1).strip())
-                continue
-            if lower.startswith("/export-history"):
-                terminal_export_history(command.replace("/export-history", "", 1).strip())
                 continue
 
             # ── Shell / web ─────────────────────────────────────
@@ -1675,6 +1697,14 @@ def repl():
 
             if lower.startswith("/cancel "):
                 cancel_job(command.replace("/cancel ", "", 1).strip())
+                continue
+
+            # ── Upscale ──────────────────────────────────────────
+            if lower == "/upscale":
+                say_panel("Usage: /upscale <file_path> [scale]", title="Upscale", style="yellow")
+                continue
+            if lower.startswith("/upscale "):
+                terminal_upscale_image(command.replace("/upscale ", "", 1).strip())
                 continue
 
             # ── Unknown slash command ────────────────────────────

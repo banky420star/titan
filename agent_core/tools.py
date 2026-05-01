@@ -249,7 +249,7 @@ def dispatch_tool(name, inp):
         return create_image(inp.get("prompt", ""), inp.get("width"), inp.get("height"), inp.get("open_file", True), inp.get("nsfw", False))
     if name == "create_gif":
         from agent_core.media_engine import create_gif
-        return create_gif(inp.get("prompt", ""), inp.get("width"), inp.get("height"), inp.get("frames", 28), inp.get("open_file", True))
+        return create_gif(inp.get("prompt", ""), inp.get("width"), inp.get("height"), inp.get("frames", 28), inp.get("open_file", True), inp.get("nsfw", False))
     if name == "list_images":
         from agent_core.media_engine import list_images
         return list_images(inp.get("limit", 40))

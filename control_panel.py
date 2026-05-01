@@ -25,6 +25,12 @@ for folder in [RUNNING, DONE, CANCELLED, LOGS, TRACES, PRODUCTS]:
 app = Flask(__name__)
 
 
+def load_config():
+    if CONFIG_PATH.exists():
+        return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
 HTML = r"""
 <!doctype html>
 <html>
@@ -32,7 +38,8 @@ HTML = r"""
   <meta charset="utf-8">
   <title>Titan</title>
   <link rel="icon" href="/assets/favicon.ico">
-  <link rel="alternate icon" href="/assets/titan_favicon.svg">\n  <link rel="icon" href="/assets/titan_favicon.svg">
+  <link rel="alternate icon" href="/assets/titan_favicon.svg">
+  <link rel="icon" href="/assets/titan_favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     :root {
@@ -2313,10 +2320,6 @@ async function pollJob(id) {
     await new Promise(r => setTimeout(r, 1500));
   }
   addMessage("assistant", "Job still running: " + id);
-}
-
-async function loadJobs() {
-  document.getElementById("jobsOut").textContent = JSON.stringify(await jsonFetch("/api/jobs"), null, 2);
 }
 
 async function loadSkills() {
