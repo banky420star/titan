@@ -2114,6 +2114,9 @@ HTML = r"""
                   <option value="python_cli">python_cli</option>
                   <option value="flask_app">flask_app</option>
                   <option value="static_website">static_website</option>
+                  <option value="api_service">api_service</option>
+                  <option value="flask_dashboard">flask_dashboard</option>
+                  <option value="landing_page">landing_page</option>
                 </select>
                 <button class="btn" onclick="createProduct()">Create</button>
               </div>
@@ -3219,6 +3222,72 @@ const paletteCommands = [
     desc: "Switch permissions to safe mode.",
     keywords: "safe permission mode",
     run: () => setMode("safe")
+  },
+  {
+    title: "Open Video",
+    desc: "Create and manage videos.",
+    keywords: "video create motion quality",
+    run: () => { clickNavByView("video"); loadVideos(); }
+  },
+  {
+    title: "Open Images",
+    desc: "Create images and GIFs, manage image backend.",
+    keywords: "image gif create backend enhance",
+    run: () => { clickNavByView("images"); loadImages(); }
+  },
+  {
+    title: "Open ComfyUI",
+    desc: "Start, stop, and generate images via ComfyUI.",
+    keywords: "comfyui comfy stable diffusion local",
+    run: () => { clickNavByView("comfyui"); loadComfyStatus(); }
+  },
+  {
+    title: "Open Agents",
+    desc: "View subagents and run team tasks.",
+    keywords: "agents subagents team planner coder tester",
+    run: () => { clickNavByView("agents"); loadSubagents(); }
+  },
+  {
+    title: "Open NSFW Studio",
+    desc: "Create explicit content.",
+    keywords: "nsfw porn adult explicit generate",
+    run: () => { clickNavByView("nsfw"); loadNsfwStatus(); }
+  },
+  {
+    title: "Create Image",
+    desc: "Generate an image from a prompt.",
+    keywords: "image create generate prompt",
+    run: () => { clickNavByView("images"); document.getElementById("imagePrompt").focus(); }
+  },
+  {
+    title: "Create Video",
+    desc: "Generate a video from a prompt.",
+    keywords: "video create generate prompt keyframe",
+    run: () => { clickNavByView("video"); document.getElementById("videoPrompt").focus(); }
+  },
+  {
+    title: "Start ComfyUI",
+    desc: "Start the local ComfyUI server.",
+    keywords: "comfyui start local server",
+    run: () => { clickNavByView("comfyui"); startComfy(); }
+  },
+  {
+    title: "Toggle Image Enhancement",
+    desc: "Toggle prompt enhancement on/off.",
+    keywords: "image enhance toggle prompt",
+    run: () => toggleImageEnhance()
+  },
+  {
+    title: "Set Image Backend to Pollinations",
+    desc: "Use Pollinations cloud for image generation.",
+    keywords: "image backend pollinations cloud",
+    run: () => { document.getElementById("imageBackend").value = "pollinations"; setImageBackend(); }
+  },
+  {
+    title: "Set Image Backend to ComfyUI",
+    desc: "Use local ComfyUI for image generation.",
+    keywords: "image backend comfyui local",
+    run: () => { document.getElementById("imageBackend").value = "comfyui"; setImageBackend(); }
   }
 ];
 
@@ -3749,7 +3818,7 @@ async function loadImages() {
     const div = document.createElement("div");
     div.className = "history-item";
     const a = document.createElement("a");
-    a.href = "/downloads/" + file.name;
+    a.href = "/downloads/" + (file.download || file.name);
     a.target = "_blank";
     a.textContent = file.name;
     a.style.color = "var(--accent)";
@@ -4277,11 +4346,9 @@ def api_image_backend():
 def api_image_enhance():
     from agent_core.media_engine import set_image_enhance
     cfg = load_config()
-    current = cfg.get("image_enhance", "on")
-    new_val = "off" if current == "on" else "on"
-    cfg["image_enhance"] = new_val
-    CONFIG_PATH.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-    return jsonify({"result": f"Image enhance set to {new_val}"})
+    current = cfg.get("image_enhance_prompt", True)
+    new_val = not current
+    return jsonify(set_image_enhance("on" if new_val else "off"))
 
 
 # ── ComfyUI API routes ──────────────────────────────

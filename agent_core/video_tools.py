@@ -24,6 +24,3 @@ def create_video(prompt, seconds=8, fps=24, open_file=True):
 def create_explicit_video(prompt, seconds=10, fps=24):
     """Generate an NSFW video using the unified media engine."""
     return _create_video(prompt, seconds=seconds, fps=fps, open_file=True, nsfw=True)
-
-
-print("video_tools ready")

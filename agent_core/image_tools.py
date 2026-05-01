@@ -12,5 +12,3 @@ from agent_core.media_engine import (
     nsfw_enabled,
     IMAGE_OUT,
 )
-
-print("image_tools ready")

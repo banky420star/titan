@@ -103,39 +103,6 @@ def list_products():
     return "\n".join(items) if items else "No products found."
 
 
-def create_product(name, kind="python_cli", description=""):
-    name = slug(name)
-    kind = str(kind or "python_cli").lower().strip()
-    root = PRODUCTS / name
-    root.mkdir(parents=True, exist_ok=True)
-
-    if kind in ["flask", "flask_app"]:
-        files = {
-            "app.py": "from flask import Flask\n\napp = Flask(__name__)\n\n@app.route('/')\ndef home():\n    return '<h1>Titan product online</h1>'\n\n@app.route('/health')\ndef health():\n    return {'status': 'ok'}\n\nif __name__ == '__main__':\n    app.run(port=5055, debug=True)\n",
-            "requirements.txt": "flask\n",
-            "README.md": f"# {name}\n\n{description}\n\nRun:\n```bash\npip install -r requirements.txt\npython3 app.py\n```\n",
-        }
-    elif kind in ["static", "static_website"]:
-        files = {
-            "index.html": "<!doctype html><html><head><title>Titan Product</title><link rel='stylesheet' href='style.css'></head><body><main><h1>Titan product online</h1></main></body></html>\n",
-            "style.css": "body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111214;color:white;font-family:system-ui}\n",
-            "README.md": f"# {name}\n\n{description}\n",
-        }
-    else:
-        files = {
-            "main.py": "def main():\n    print('Titan product online')\n\nif __name__ == '__main__':\n    main()\n",
-            "requirements.txt": "",
-            "README.md": f"# {name}\n\n{description}\n\nRun:\n```bash\npython3 main.py\n```\n",
-        }
-
-    for rel, body in files.items():
-        p = root / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(body, encoding="utf-8")
-
-    return "Created product: " + str(root)
-
-
 def run_command(command):
     from agent_core.approvals import validate_command, permission_status
 
@@ -263,7 +230,7 @@ def dispatch_tool(name, inp):
     # ── Video generation ────────────────────────────────────
     if name == "create_video":
         from agent_core.video_tools import create_video
-        return create_video(inp.get("prompt", ""), seconds=inp.get("seconds", 8), fps=inp.get("fps", 24))
+        return create_video(inp.get("prompt", ""), seconds=inp.get("seconds"), fps=inp.get("fps"))
     if name == "list_videos":
         from agent_core.video_tools import list_videos
         return list_videos(inp.get("limit", 40))

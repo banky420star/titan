@@ -447,12 +447,24 @@ def create_video(prompt, seconds=None, fps=None, open_file=True, nsfw=False):
 # ---------------------------------------------------------------------------
 
 def list_images(limit=40):
-    files = sorted(IMAGE_OUT.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]
+    all_files = []
+    for folder, subfolder in [(IMAGE_OUT, "images"), (NSFW_OUT, "porn")]:
+        if folder.exists():
+            for p in sorted(folder.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True):
+                if p.is_file():
+                    all_files.append((p, subfolder))
+    all_files.sort(key=lambda x: x[0].stat().st_mtime, reverse=True)
+    all_files = all_files[:limit]
     return {
         "folder": str(IMAGE_OUT),
         "files": [
-            {"name": p.name, "path": str(p), "size": p.stat().st_size}
-            for p in files if p.is_file()
+            {
+                "name": p.name,
+                "path": str(p),
+                "download": f"{subfolder}/{p.name}",
+                "size": p.stat().st_size,
+            }
+            for p, subfolder in all_files
         ],
     }
 
