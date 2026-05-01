@@ -174,6 +174,7 @@ def run_command(command):
 def dispatch_tool(name, inp):
     inp = inp or {}
 
+    # ── Workspace / file tools ──────────────────────────────
     if name == "workspace_tree":
         return workspace_tree(inp.get("max_items", 180))
     if name == "list_files":
@@ -184,13 +185,29 @@ def dispatch_tool(name, inp):
         return write_file(inp.get("filename", ""), inp.get("content", ""))
     if name == "append_file":
         return append_file(inp.get("filename", ""), inp.get("content", ""))
-    if name == "create_product":
-        return create_product(inp.get("name", ""), inp.get("kind", "python_cli"), inp.get("description", ""))
-    if name == "list_products":
-        return list_products()
     if name == "run_command":
         return run_command(inp.get("command", ""))
 
+    # ── Products (6 templates via products module) ──────────
+    if name == "create_product":
+        from agent_core.products import create_product as _create_product
+        return _create_product(inp.get("name", ""), inp.get("kind", "python_cli"), inp.get("description", ""))
+    if name == "list_products":
+        return list_products()
+    if name == "start_product":
+        from agent_core.products import start_product
+        return start_product(inp.get("name", ""))
+    if name == "stop_product":
+        from agent_core.products import stop_product
+        return stop_product(inp.get("name", ""))
+    if name == "product_logs":
+        from agent_core.products import product_logs
+        return product_logs(inp.get("name", ""))
+    if name == "list_product_templates":
+        from agent_core.product_templates import list_templates
+        return list_templates()
+
+    # ── Skills ──────────────────────────────────────────────
     if name == "list_skills":
         return list_skills()
     if name == "create_skill_pack":
@@ -200,6 +217,7 @@ def dispatch_tool(name, inp):
     if name == "install_dependency":
         return install_dependency(inp.get("package", ""))
 
+    # ── RAG ─────────────────────────────────────────────────
     if name == "rag_status":
         return rag_status()
     if name == "rag_index":
@@ -207,6 +225,7 @@ def dispatch_tool(name, inp):
     if name == "rag_search":
         return rag_search(inp.get("query", ""), inp.get("top_k", 5))
 
+    # ── Memory ──────────────────────────────────────────────
     if name == "memory_save":
         return memory_save(inp.get("text", ""), inp.get("kind", "project_fact"), inp.get("scope", "project"), inp.get("tags", []))
     if name == "memory_search":
@@ -216,11 +235,111 @@ def dispatch_tool(name, inp):
     if name == "memory_delete":
         return memory_delete(inp.get("id", ""))
 
+    # ── Web ─────────────────────────────────────────────────
     if name == "web_search":
         return web_search(inp.get("query", ""), inp.get("max_results", 6))
     if name == "fetch_url":
         return fetch_url(inp.get("url", ""))
     if name == "download_url":
         return download_url(inp.get("url", ""), inp.get("filename", ""))
+
+    # ── Image generation ────────────────────────────────────
+    if name == "create_image":
+        from agent_core.media_engine import create_image
+        return create_image(inp.get("prompt", ""), inp.get("width"), inp.get("height"), inp.get("open_file", True), inp.get("nsfw", False))
+    if name == "create_gif":
+        from agent_core.media_engine import create_gif
+        return create_gif(inp.get("prompt", ""), inp.get("width"), inp.get("height"), inp.get("frames", 28), inp.get("open_file", True))
+    if name == "list_images":
+        from agent_core.media_engine import list_images
+        return list_images(inp.get("limit", 40))
+    if name == "set_image_backend":
+        from agent_core.media_engine import set_image_backend
+        return set_image_backend(inp.get("backend", "pollinations"))
+    if name == "set_image_enhance":
+        from agent_core.media_engine import set_image_enhance
+        return set_image_enhance(inp.get("value", "on"))
+
+    # ── Video generation ────────────────────────────────────
+    if name == "create_video":
+        from agent_core.video_tools import create_video
+        return create_video(inp.get("prompt", ""), seconds=inp.get("seconds", 8), fps=inp.get("fps", 24))
+    if name == "list_videos":
+        from agent_core.video_tools import list_videos
+        return list_videos(inp.get("limit", 40))
+    if name == "video_status":
+        from agent_core.media_engine import video_status
+        return video_status()
+    if name == "set_video_quality":
+        from agent_core.media_engine import set_video_quality
+        return set_video_quality(inp.get("quality", "medium"))
+    if name == "set_video_motion":
+        from agent_core.media_engine import set_video_motion
+        return set_video_motion(inp.get("motion", "high"))
+
+    # ── ComfyUI ─────────────────────────────────────────────
+    if name == "comfy_status":
+        from agent_core.comfyui_bridge import comfy_info
+        return comfy_info()
+    if name == "start_comfyui":
+        from agent_core.comfyui_bridge import start_comfyui
+        return start_comfyui()
+    if name == "stop_comfyui":
+        from agent_core.comfyui_bridge import stop_comfyui
+        return stop_comfyui()
+    if name == "comfy_image":
+        from agent_core.comfyui_bridge import comfy_image
+        return comfy_image(inp.get("prompt", ""), inp.get("width", 1024), inp.get("height", 1536))
+
+    # ── Search / diff / snapshot ───────────────────────────
+    if name == "search_files":
+        from agent_core.search_diff import search_files_text
+        return search_files_text(inp.get("query", ""), root=inp.get("root", "all"))
+    if name == "snapshot":
+        from agent_core.search_diff import make_snapshot
+        return make_snapshot(inp.get("root", "workspace"))
+    if name == "changed_files":
+        from agent_core.search_diff import changed_files_text
+        return changed_files_text(inp.get("root", "workspace"))
+    if name == "diff_file":
+        from agent_core.search_diff import diff_file
+        return diff_file(inp.get("root", "workspace"), inp.get("path", ""))
+
+    # ── Subagents / team ────────────────────────────────────
+    if name == "call_subagent":
+        from agent_core.subagents import call_subagent
+        return call_subagent(inp.get("role", "coder"), inp.get("task", ""), inp.get("context", ""))
+    if name == "run_team":
+        from agent_core.subagents import run_team
+        return run_team(inp.get("task", ""))
+    if name == "list_subagents":
+        from agent_core.subagents import format_subagents
+        return format_subagents()
+
+    # ── Chat history ───────────────────────────────────────
+    if name == "log_event":
+        from agent_core.chat_history import log_event
+        return log_event(inp.get("role", "user"), inp.get("content", ""), section=inp.get("section"), meta=inp.get("meta"))
+    if name == "set_section":
+        from agent_core.chat_history import set_section
+        return set_section(inp.get("section", ""))
+    if name == "history_text":
+        from agent_core.chat_history import history_text
+        return history_text(section=inp.get("section"), limit=inp.get("limit", 60))
+
+    # ── Permissions ────────────────────────────────────────
+    if name == "set_permission_mode":
+        from agent_core.approvals import set_mode
+        return set_mode(inp.get("mode", "safe"))
+
+    # ── Upscale ─────────────────────────────────────────────
+    if name == "upscale_image":
+        from agent_core.upscale_tools import upscale_image
+        return upscale_image(inp.get("src", ""), inp.get("scale", 2))
+
+    # ── Idea chat ──────────────────────────────────────────
+    if name == "idea_chat":
+        from agent_core.idea_chat import idea_chat
+        return idea_chat(inp.get("task", ""), mode=inp.get("mode", "idea"))
 
     return "Unknown tool: " + str(name)

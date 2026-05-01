@@ -132,9 +132,18 @@ def titan_logo_text(open_eyes=True):
 def startup_frame(open_eyes=True):
     cfg = load_config()
 
+    taglines = [
+        "Your local AI. No cloud, no limits.",
+        "Sharp. Direct. Gets it done.",
+        "Local compute, global attitude.",
+        "Built different. Runs local.",
+    ]
+    tagline = taglines[int(time.time()) % len(taglines)]
+
     body = Text()
     body.append(titan_logo_text(open_eyes=open_eyes))
-    body.append("Titan clean terminal\n", style="bold white")
+    body.append("Titan\n", style="bold white")
+    body.append(f"{tagline}\n", style="bold magenta")
     body.append(f"Base: {BASE}\n", style="dim")
     body.append(f"Workspace: {cfg.get('workspace', BASE / 'workspace')}\n", style="dim")
     body.append(f"Model: {cfg.get('model', 'unset')}\n", style="cyan")
@@ -194,7 +203,7 @@ def startup():
             "        ████████ ████████ ████████\n"
             "                ████████\n"
             "                ████████\n\n"
-            "Titan clean terminal\n"
+            "Titan — Your local AI. No cloud, no limits.\n"
             f"Base: {BASE}\n"
             f"Workspace: {cfg.get('workspace', BASE / 'workspace')}\n"
             f"Model: {cfg.get('model', 'unset')}\n"
@@ -409,6 +418,22 @@ def show_trace(job_id):
         say_panel(p.read_text(errors="ignore")[-12000:], title=f"Trace: {job_id}", style="yellow")
     else:
         say_panel("Trace not found: " + job_id, title="Trace", style="yellow")
+
+
+def cancel_job(job_id):
+    job_id = str(job_id).strip()
+    for folder_name in ["running"]:
+        p = BASE / "jobs" / folder_name / f"{job_id}.json"
+        if p.exists():
+            data = json.loads(p.read_text(encoding="utf-8"))
+            data["status"] = "cancelled"
+            cancelled = BASE / "jobs" / "cancelled"
+            cancelled.mkdir(parents=True, exist_ok=True)
+            (cancelled / f"{job_id}.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+            p.unlink()
+            say_panel(f"Cancelled job: {job_id}", title="Cancel", style="yellow")
+            return
+    say_panel(f"Job not found or not running: {job_id}", title="Cancel", style="yellow")
 
 
 
@@ -707,6 +732,12 @@ TITAN_SLASH_COMMANDS = [
     "/help",
     "/doctor",
     "/models",
+    "/tiny",
+    "/fast",
+    "/coder",
+    "/smart",
+    "/heavy",
+    "/max",
     "/dashboard",
     "/tree",
     "/bg ",
@@ -722,6 +753,12 @@ TITAN_SLASH_COMMANDS = [
     "/power",
     "/agentic",
     "/run ",
+    "/agents",
+    "/team ",
+    "/skills",
+    "/skill-create ",
+    "/skill ",
+    "/pip ",
     "/products",
     "/product-create ",
     "/product-template ",
@@ -749,11 +786,24 @@ TITAN_SLASH_COMMANDS = [
     "/images",
     "/image-backend ",
     "/image-enhance ",
+    "/video ",
+    "/videos",
+    "/video-status",
+    "/video-quality ",
+    "/video-motion ",
+    "/video-image-backend ",
+    "/comfy-status",
+    "/comfy-start",
+    "/comfy-stop",
+    "/comfy-image ",
+    "/upscale ",
     "/memory",
     "/remember ",
+    "/recall ",
     "/forget ",
     "/rag",
-    "/skills",
+    "/rag-index",
+    "/rag-search ",
     "/exit",
 ]
 
@@ -761,6 +811,12 @@ TITAN_SLASH_META = {
     "/help": "Show commands",
     "/doctor": "Check Titan folders/files",
     "/models": "Show model config",
+    "/tiny": "Set model to tiny (1.7b)",
+    "/fast": "Set model to fast (7b)",
+    "/coder": "Set model to coder (14b)",
+    "/smart": "Set model to smart (8b)",
+    "/heavy": "Set model to heavy (35b iq3)",
+    "/max": "Set model to max (35b)",
     "/dashboard": "Launch dashboard",
     "/tree": "Show workspace tree",
     "/bg ": "Start background job",
@@ -803,11 +859,29 @@ TITAN_SLASH_META = {
     "/images": "List images",
     "/image-backend ": "Set image backend",
     "/image-enhance ": "Toggle prompt enhancement",
+    "/video ": "Create video",
+    "/videos": "List videos",
+    "/video-status": "Show video config",
+    "/video-quality ": "Set video quality (low/medium/high)",
+    "/video-motion ": "Set video motion (low/medium/high)",
+    "/video-image-backend ": "Set video image backend",
+    "/comfy-status": "ComfyUI connection status",
+    "/comfy-start": "Start ComfyUI server",
+    "/comfy-stop": "Stop ComfyUI server",
+    "/comfy-image ": "Generate image via ComfyUI",
+    "/upscale ": "Upscale an image",
     "/memory": "Show memory",
     "/remember ": "Save memory",
+    "/recall ": "Search and recall memory",
     "/forget ": "Delete memory",
     "/rag": "RAG tools",
-    "/skills": "Show skills",
+    "/rag-index": "Index RAG documents",
+    "/rag-search ": "Search RAG index",
+    "/agents": "Show subagents",
+    "/team ": "Run a team task",
+    "/skill-create ": "Create a skill pack",
+    "/skill ": "Run a skill pack",
+    "/pip ": "Install a Python package",
     "/exit": "Quit Titan",
 }
 
@@ -1592,6 +1666,10 @@ def repl():
                 continue
             if lower.startswith("/trace-job "):
                 show_trace(command.replace("/trace-job ", "", 1).strip())
+                continue
+
+            if lower.startswith("/cancel "):
+                cancel_job(command.replace("/cancel ", "", 1).strip())
                 continue
 
             # ── Unknown slash command ────────────────────────────

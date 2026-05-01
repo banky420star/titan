@@ -17,6 +17,7 @@ CANCELLED = JOBS / "cancelled"
 LOGS = JOBS / "logs"
 TRACES = JOBS / "traces"
 PRODUCTS = BASE / "products"
+CONFIG_PATH = BASE / "config.json"
 
 for folder in [RUNNING, DONE, CANCELLED, LOGS, TRACES, PRODUCTS]:
     folder.mkdir(parents=True, exist_ok=True)
@@ -1712,12 +1713,15 @@ HTML = r"""
       <nav>
         <button class="active" onclick="showView('chat', this)">💬 Chat</button>
         <button onclick="showView('video', this); loadVideos()">▣ Video</button>
+        <button onclick="showView('images', this); loadImages()">🖼 Images</button>
+        <button onclick="showView('comfyui', this); loadComfyStatus()">⬡ ComfyUI</button>
         <button onclick="showView('history', this); loadHistory()">▤ History</button>
         <button onclick="showView('jobs', this); loadJobs()">▣ Jobs</button>
         <button onclick="showView('files', this); loadFiles()">🗂 Files</button>
         <button onclick="showView('search', this)">🔎 Search / Diff</button>
         <button onclick="showView('products', this); loadProducts()">◇ Products</button>
         <button onclick="showView('skills', this); loadSkills()">✧ Skills</button>
+        <button onclick="showView('agents', this); loadSubagents()">⇶ Agents</button>
         <button onclick="showView('memory', this); loadMemory()">🧠 Memory</button>
         <button onclick="showView('rag', this); loadRag()">⌕ RAG</button>
         <button onclick="showView('models', this); loadModels()">☷ Models</button>
@@ -1810,6 +1814,67 @@ HTML = r"""
               </div>
               <pre id="videoOut">Video output appears here.</pre>
               <div id="videoList" class="history-list">No videos loaded.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-images" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <strong>Image Studio</strong>
+              <button class="btn" onclick="loadImageStatus()">Status</button>
+            </div>
+            <div class="panel-body">
+              <div class="row">
+                <select class="field small-field" id="imageBackend"><option value="pollinations" selected>pollinations</option><option value="comfyui">comfyui</option><option value="local">local</option></select>
+                <button class="btn" onclick="setImageBackend()">Set Backend</button>
+                <button class="btn" onclick="toggleImageEnhance()">Toggle Enhance</button>
+              </div>
+              <textarea id="imagePrompt" class="file-editor" placeholder="Describe the image you want to create..."></textarea>
+              <div class="row">
+                <button class="btn primary" onclick="createDashboardImage()">Create Image</button>
+                <button class="btn" onclick="createDashboardGif()">Create GIF</button>
+                <button class="btn" onclick="loadImages()">Refresh</button>
+              </div>
+              <pre id="imageOut">Image output appears here.</pre>
+              <div id="imageList" class="history-list">No images loaded.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-comfyui" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <strong>ComfyUI Control</strong>
+              <button class="btn" onclick="loadComfyStatus()">Refresh Status</button>
+            </div>
+            <div class="panel-body">
+              <div class="row">
+                <button class="btn primary" onclick="startComfy()">Start ComfyUI</button>
+                <button class="btn" onclick="stopComfy()">Stop ComfyUI</button>
+              </div>
+              <div class="row">
+                <input id="comfyPrompt" class="field" placeholder="Describe the image for ComfyUI...">
+                <button class="btn primary" onclick="comfyGenerateImage()">Generate</button>
+              </div>
+              <pre id="comfyOut">ComfyUI status will appear here.</pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-agents" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <strong>Subagents</strong>
+              <button class="btn" onclick="loadSubagents()">Refresh</button>
+            </div>
+            <div class="panel-body">
+              <div id="subagentList" class="history-list">Loading agents...</div>
+              <div class="row" style="margin-top:12px">
+                <input id="teamTask" class="field" placeholder="Describe a task for the team...">
+                <button class="btn primary" onclick="runTeamTask()">Run Team Task</button>
+              </div>
+              <pre id="teamOut">Team results will appear here.</pre>
             </div>
           </div>
         </section>
@@ -2170,7 +2235,13 @@ function addMessage(role, text) {
 
 function clearChat() {
   document.getElementById("messages").innerHTML = "";
-  addMessage("assistant", "Clean slate.");
+  const greetings = [
+    "Ready. What are we building?",
+    "Clean slate. Let's go.",
+    "Fresh session. Hit me with it.",
+    "Titan online. What's the move?",
+  ];
+  addMessage("assistant", greetings[Math.floor(Math.random() * greetings.length)]);
 }
 
 async function jsonFetch(url, options={}) {
@@ -3600,6 +3671,110 @@ async function loadVideos() {
   });
 }
 
+// ── Images tab ──────────────────────────────────
+async function loadImageStatus() {
+  const out = document.getElementById("imageOut");
+  const data = await jsonFetch("/api/image/status");
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function setImageBackend() {
+  const backend = document.getElementById("imageBackend").value;
+  const out = document.getElementById("imageOut");
+  const data = await jsonFetch("/api/image/backend", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({backend})});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function toggleImageEnhance() {
+  const out = document.getElementById("imageOut");
+  const data = await jsonFetch("/api/image/enhance", {method:"POST", headers:{"Content-Type":"application/json"}});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function createDashboardImage() {
+  const prompt = document.getElementById("imagePrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("imageOut");
+  out.textContent = "Creating image...";
+  const data = await jsonFetch("/api/image/create", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt})});
+  out.textContent = JSON.stringify(data, null, 2);
+  await loadImages();
+}
+async function createDashboardGif() {
+  const prompt = document.getElementById("imagePrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("imageOut");
+  out.textContent = "Creating GIF (this takes a moment)...";
+  const data = await jsonFetch("/api/image/gif", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt})});
+  out.textContent = JSON.stringify(data, null, 2);
+  await loadImages();
+}
+async function loadImages() {
+  const list = document.getElementById("imageList");
+  if (!list) return;
+  const data = await jsonFetch("/api/image/list");
+  const files = data.files || [];
+  if (!files.length) { list.textContent = "No images found."; return; }
+  list.innerHTML = "";
+  files.slice().reverse().forEach(file => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    const a = document.createElement("a");
+    a.href = "/downloads/" + file.name;
+    a.target = "_blank";
+    a.textContent = file.name;
+    a.style.color = "var(--accent)";
+    a.style.textDecoration = "none";
+    div.textContent = "";
+    div.appendChild(a);
+    const info = document.createElement("span");
+    info.textContent = " | " + (file.size || 0) + " bytes";
+    info.style.color = "var(--muted)";
+    div.appendChild(info);
+    list.appendChild(div);
+  });
+}
+
+// ── ComfyUI tab ─────────────────────────────────
+async function loadComfyStatus() {
+  const out = document.getElementById("comfyOut");
+  const data = await jsonFetch("/api/comfy/status");
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function startComfy() {
+  const out = document.getElementById("comfyOut");
+  out.textContent = "Starting ComfyUI...";
+  const data = await jsonFetch("/api/comfy/start", {method:"POST"});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function stopComfy() {
+  const out = document.getElementById("comfyOut");
+  out.textContent = "Stopping ComfyUI...";
+  const data = await jsonFetch("/api/comfy/stop", {method:"POST"});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+async function comfyGenerateImage() {
+  const prompt = document.getElementById("comfyPrompt").value.trim();
+  if (!prompt) return;
+  const out = document.getElementById("comfyOut");
+  out.textContent = "Generating via ComfyUI (this may take a while)...";
+  const data = await jsonFetch("/api/comfy/image", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({prompt})});
+  out.textContent = JSON.stringify(data, null, 2);
+}
+
+// ── Agents tab ──────────────────────────────────
+async function loadSubagents() {
+  const list = document.getElementById("subagentList");
+  if (!list) return;
+  const data = await jsonFetch("/api/subagents");
+  list.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+}
+async function runTeamTask() {
+  const task = document.getElementById("teamTask").value.trim();
+  if (!task) return;
+  const out = document.getElementById("teamOut");
+  out.textContent = "Running team task...";
+  const data = await jsonFetch("/api/team/run", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({task})});
+  out.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+}
+
 </script>
 
   <!-- TITAN_COMMAND_PALETTE_HTML_START -->
@@ -3982,6 +4157,101 @@ def api_video_motion():
 def api_video_image_backend():
     from agent_core.video_tools import set_video_image_backend
     return safe(lambda: set_video_image_backend(request.json.get("backend", "pollinations")))
+
+
+# ── Image API routes ────────────────────────────────
+
+@app.route("/api/image/status")
+def api_image_status():
+    from agent_core.media_engine import video_status
+    return safe(lambda: video_status())
+
+
+@app.route("/api/image/create", methods=["POST"])
+def api_image_create():
+    from agent_core.media_engine import create_image
+    prompt = request.json.get("prompt", "")
+    return safe(lambda: create_image(prompt))
+
+
+@app.route("/api/image/gif", methods=["POST"])
+def api_image_gif():
+    from agent_core.media_engine import create_gif
+    prompt = request.json.get("prompt", "")
+    return safe(lambda: create_gif(prompt))
+
+
+@app.route("/api/image/list")
+def api_image_list():
+    from agent_core.media_engine import list_images
+    return safe(lambda: list_images())
+
+
+@app.route("/api/image/backend", methods=["POST"])
+def api_image_backend():
+    from agent_core.media_engine import set_image_backend
+    return safe(lambda: set_image_backend(request.json.get("backend", "pollinations")))
+
+
+@app.route("/api/image/enhance", methods=["POST"])
+def api_image_enhance():
+    from agent_core.media_engine import set_image_enhance
+    cfg = load_config()
+    current = cfg.get("image_enhance", "on")
+    new_val = "off" if current == "on" else "on"
+    cfg["image_enhance"] = new_val
+    CONFIG_PATH.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    return jsonify({"result": f"Image enhance set to {new_val}"})
+
+
+# ── ComfyUI API routes ──────────────────────────────
+
+@app.route("/api/comfy/status")
+def api_comfy_status():
+    from agent_core.comfyui_bridge import comfy_info
+    return safe(lambda: comfy_info())
+
+
+@app.route("/api/comfy/start", methods=["POST"])
+def api_comfy_start():
+    from agent_core.comfyui_bridge import start_comfyui
+    return safe(lambda: start_comfyui())
+
+
+@app.route("/api/comfy/stop", methods=["POST"])
+def api_comfy_stop():
+    from agent_core.comfyui_bridge import stop_comfyui
+    return safe(lambda: stop_comfyui())
+
+
+@app.route("/api/comfy/image", methods=["POST"])
+def api_comfy_image():
+    from agent_core.comfyui_bridge import comfy_image
+    prompt = request.json.get("prompt", "")
+    return safe(lambda: comfy_image(prompt))
+
+
+# ── Subagents API routes ────────────────────────────
+
+@app.route("/api/subagents")
+def api_subagents():
+    from agent_core.subagents import format_subagents
+    return safe(lambda: format_subagents())
+
+
+# ── Static file serving for downloads ───────────────
+
+@app.route("/downloads/<path:filename>")
+def serve_download(filename):
+    downloads = BASE / "downloads"
+    return send_from_directory(str(downloads), filename)
+
+
+@app.route("/api/team/run", methods=["POST"])
+def api_team_run():
+    from agent_core.subagents import run_team
+    task = request.json.get("task", "")
+    return safe(lambda: run_team(task))
 
 
 if __name__ == "__main__":

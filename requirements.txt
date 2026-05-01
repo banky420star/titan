@@ -1,0 +1,25 @@
+# TitanAgent — Core Dependencies
+# Install: python3 -m pip install -r requirements.txt
+
+# Web framework (dashboard + products)
+Flask>=3.0
+
+# Terminal UI
+rich>=13.0
+prompt_toolkit>=3.0
+
+# Image processing
+Pillow>=10.0
+imageio>=2.0
+imageio-ffmpeg>=0.4
+
+# Web scraping / fetching
+requests>=2.31
+beautifulsoup4>=4.12
+ddgs>=6.0
+
+# RAG / embeddings
+chromadb>=0.4
+
+# Optional: Ollama Python client
+# ollama>=0.1

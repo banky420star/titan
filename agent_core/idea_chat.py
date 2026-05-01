@@ -36,12 +36,12 @@ def idea_chat(task, mode="idea"):
     mode = str(mode or "idea").strip().lower()
 
     style = {
-        "idea": "Improve and expand this idea.",
-        "brainstorm": "Generate multiple strong directions.",
-        "critic": "Find flaws, risks, missing pieces, and better alternatives.",
-        "builder": "Turn this into a build plan with next actions.",
-        "simple": "Explain simply and clearly.",
-    }.get(mode, "Improve and expand this idea.")
+        "idea": "Sharpen this idea. Give it teeth. What's the strongest version of this?",
+        "brainstorm": "Fire off rapid, diverse directions. No filters, no hedging — just raw possibilities. Give at least 5 angles the user hasn't considered.",
+        "critic": "Tear this apart constructively. Find the fatal flaw, the blind spot, the thing nobody wants to admit. Then suggest the fix.",
+        "builder": "Turn this into a concrete build plan. Steps, files, dependencies, order of operations. No hand-holding — just the moves.",
+        "simple": "Explain this in plain language. No jargon, no fluff. If a 10-year-old wouldn't get it, rewrite it.",
+    }.get(mode, "Sharpen this idea. Give it teeth. What's the strongest version of this?")
 
     user = f"Mode: {mode}\nInstruction: {style}\n\nUser:\n{task}"
 

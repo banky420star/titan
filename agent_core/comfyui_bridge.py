@@ -5,7 +5,12 @@ import sys
 from pathlib import Path
 
 BASE = Path("/Volumes/AI_DRIVE/TitanAgent")
-COMFYUI_DIR = BASE / "models" / "ComfyUI"
+COMFYUI_DIR = BASE / "local_ai" / "ComfyUI"
+# Fallback: check old path if new one doesn't exist
+if not COMFYUI_DIR.exists():
+    _alt = BASE / "models" / "ComfyUI"
+    if _alt.exists():
+        COMFYUI_DIR = _alt
 COMFYUI_URL = "http://127.0.0.1:8188"
 _comfy_process = None
 
