@@ -258,13 +258,13 @@ HTML = r"""
       display: flex;
       gap: 10px;
       height: 62px;
-      padding: 8px;
-      background: rgba(255,255,255,.055);
+      padding: 8px 16px;
+      background: rgba(255,255,255,.08);
       border: 1px solid var(--line);
       border-radius: 999px;
-      margin-bottom: 16px;
+      margin-top: 12px;
       position: sticky;
-      top: 16px;
+      bottom: 0;
       z-index: 10;
       backdrop-filter: blur(14px);
     }
@@ -330,41 +330,77 @@ HTML = r"""
     }
 
     .messages {
-      height: 390px;
+      height: 420px;
       overflow-y: auto;
-      display: grid;
-      gap: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       padding: 18px;
+      scroll-behavior: smooth;
     }
 
     .msg {
-      max-width: 84%;
-      padding: 13px 15px;
+      max-width: 80%;
+      padding: 12px 16px;
       border: 1px solid var(--line);
       background: rgba(255,255,255,.055);
-      border-radius: 20px;
+      border-radius: 18px 18px 18px 4px;
       white-space: pre-wrap;
-      line-height: 1.45;
+      line-height: 1.5;
       word-break: break-word;
-      animation: msgIn .16s ease both;
+      animation: msgIn .18s ease both;
+      font-size: 14px;
+      align-self: flex-start;
     }
 
     @keyframes msgIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(6px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .msg.user {
-      justify-self: end;
-      background: rgba(79,70,229,.18);
-      border-color: rgba(124,140,255,.24);
+      align-self: flex-end;
+      background: rgba(0,232,123,.12);
+      border-color: rgba(0,232,123,.25);
+      border-radius: 18px 18px 4px 18px;
     }
 
     .msg small {
       display: block;
       color: var(--muted);
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .msg .msg-body {
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .typing-indicator {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing-indicator span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: .4;
+      animation: typingBounce .6s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: .1s; }
+    .typing-indicator span:nth-child(3) { animation-delay: .2s; }
+
+    @keyframes typingBounce {
+      0%, 100% { transform: translateY(0); opacity: .4; }
+      50% { transform: translateY(-6px); opacity: 1; }
     }
 
     .grid {
@@ -1917,18 +1953,13 @@ HTML = r"""
 
 
 <section id="view-chat" class="view active">
-          <form class="composer" onsubmit="sendChat(event)">
-            <input id="chatInput" placeholder="Ask Titan..." autocomplete="off">
-            <button class="btn primary" type="submit">↑</button>
-          </form>
-
           <div class="panel">
             <div class="panel-head">
               <strong>Titan Chat</strong>
               <button class="btn" onclick="clearChat()">Clear</button>
             </div>
             <div class="messages" id="messages">
-              <div class="msg"><small>Titan</small>Ready. Ask me to build, inspect, search, remember, index, or run jobs.</div>
+              <div class="msg"><small>Titan</small><div class="msg-body">Ready. What are we building?</div></div>
             </div>
           </div>
 
@@ -1937,6 +1968,11 @@ HTML = r"""
             <div class="card" onclick="quick('Search RAG for Titan dashboard port and summarize the result.')"><div>⌕</div><h3>RAG Search</h3><p>Use local knowledge.</p></div>
             <div class="card" onclick="quick('List my skills.')"><div>✧</div><h3>Skills</h3><p>Show reusable workflows.</p></div>
           </div>
+
+          <form class="composer" onsubmit="sendChat(event)">
+            <input id="chatInput" placeholder="Ask Titan anything..." autocomplete="off">
+            <button class="btn primary" type="submit">↑</button>
+          </form>
         </section>
 
         
@@ -2266,10 +2302,26 @@ function addMessage(role, text) {
   d.className = "msg " + (role === "user" ? "user" : "");
   d.innerHTML = "<small>" + (role === "user" ? "You" : "Titan") + "</small>";
   const body = document.createElement("div");
+  body.className = "msg-body";
   body.textContent = typeof text === "string" ? text : JSON.stringify(text, null, 2);
   d.appendChild(body);
   box.appendChild(d);
   box.scrollTop = box.scrollHeight;
+}
+
+function showTyping() {
+  const box = document.getElementById("messages");
+  const d = document.createElement("div");
+  d.className = "msg";
+  d.id = "typing-msg";
+  d.innerHTML = '<small>Titan</small><div class="typing-indicator"><span></span><span></span><span></span></div>';
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById("typing-msg");
+  if (el) el.remove();
 }
 
 function clearChat() {
@@ -2299,12 +2351,13 @@ async function sendChat(event) {
 
 async function quick(task) {
   addMessage("user", task);
-  addMessage("assistant", "Started background job...");
+  showTyping();
   const data = await jsonFetch("/api/task", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({task})
   });
+  hideTyping();
   if (data.error) {
     addMessage("assistant", data.error);
     return;
@@ -2317,11 +2370,13 @@ async function pollJob(id) {
   for (let i = 0; i < 240; i++) {
     const data = await jsonFetch("/api/job/" + encodeURIComponent(id));
     if (data.status === "done" || data.status === "error" || data.status === "cancelled") {
+      hideTyping();
       addMessage("assistant", data.result || data.error || JSON.stringify(data, null, 2));
       return;
     }
     await new Promise(r => setTimeout(r, 1500));
   }
+  hideTyping();
   addMessage("assistant", "Job still running: " + id);
 }
 
