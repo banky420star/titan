@@ -1401,6 +1401,9 @@ def repl():
             lower = command.lower()
 
             # ── NSFW / explicit ───────────────────────────────────
+            if lower == "/porn":
+                say_panel("/porn <prompt> — create explicit video/image\nExample: /porn woman in red lingerie on velvet couch", title="NSFW", style="magenta")
+                continue
             if lower.startswith("/porn "):
                 prompt = command.replace("/porn ", "", 1).strip()
                 from agent_core.video_tools import create_explicit_video
